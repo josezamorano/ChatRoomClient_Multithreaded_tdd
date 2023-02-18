@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using ChatRoomClient.DomainLayer;
+using System.Net.Sockets;
 
 namespace ChatRoomClient.Utils.Interfaces
 {
@@ -6,6 +7,6 @@ namespace ChatRoomClient.Utils.Interfaces
     {
         string SendMessageToServer(TcpClient tcpClient, string payloadAsMessageLine);
 
-        string ReceiveMessageFromServer(TcpClient tcpClient);
+        void ReceiveMessageFromServer(TcpClient tcpClient, MessageFromServerDelegate messageFromServerCallback);
     }
 }

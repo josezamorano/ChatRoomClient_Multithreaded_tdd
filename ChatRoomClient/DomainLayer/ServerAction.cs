@@ -6,6 +6,7 @@ using System.Net.Sockets;
 
 namespace ChatRoomClient.DomainLayer
 {
+    public delegate void MessageFromServerDelegate(string messageFromServer);
     public class ServerAction : IServerAction
     {
         
@@ -33,25 +34,33 @@ namespace ChatRoomClient.DomainLayer
             return notificationMessage;
         }
 
+        public void ResolveCommunicationFromServer(TcpClient tcpClient , ServerActionReportDelegate serverActionReportCallback)
+        {            
 
-        public ServerActionResolvedReport ResolveCommunicationFromServer(TcpClient tcpClient )
-        {
-            ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
-            string messageReceived = _transmitter.ReceiveMessageFromServer(tcpClient);
-            if (string.IsNullOrEmpty(messageReceived) || 
-                 messageReceived.Contains(Notification.Exception) || 
-                 messageReceived.Contains(Notification.ServerMessage))
+            void ProcessMessageFromServerCallback(string messageReceived)
             {
-                serverActionResolvedReport.MessageFromServer = messageReceived;
+                ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
+
+                if (string.IsNullOrEmpty(messageReceived) ||
+                     messageReceived.Contains(Notification.Exception) ||
+                     messageReceived.Contains(Notification.ServerMessage))
+                {
+                    serverActionResolvedReport.MessageFromServer = messageReceived;
+                }
+                else if (messageReceived.Contains(Notification.ServerPayload))
+                {
+                    string serializedPayload = messageReceived.Replace(Notification.ServerPayload, "");
+                    Payload payloadFromServer = _serializationProvider.DeserializeObject<Payload>(serializedPayload);
+                    serverActionResolvedReport = ResolveActionRequestedByServer(payloadFromServer);
+                    serverActionResolvedReport.MessageFromServer = messageReceived;
+                }
+
+                serverActionReportCallback(serverActionResolvedReport);
             }
-            else if (messageReceived.Contains(Notification.ServerPayload))
-            {
-                string serializedPayload = messageReceived.Replace(Notification.ServerPayload, "");
-                Payload payloadFromServer = _serializationProvider.DeserializeObject<Payload>(serializedPayload);
-                serverActionResolvedReport = ResolveActionRequestedByServer(payloadFromServer);
-                serverActionResolvedReport.MessageFromServer = messageReceived;                
-            }
-            return serverActionResolvedReport;
+
+            MessageFromServerDelegate messageFromServerCallback = new MessageFromServerDelegate(ProcessMessageFromServerCallback);
+
+            _transmitter.ReceiveMessageFromServer(tcpClient , messageFromServerCallback);
         }
 
         public ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload)

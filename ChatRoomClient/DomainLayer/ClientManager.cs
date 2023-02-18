@@ -7,6 +7,8 @@ using ChatRoomClient.Utils.Enumerations;
 
 namespace ChatRoomClient.DomainLayer
 {
+
+    public delegate void ServerActionReportDelegate(ServerActionResolvedReport serverActionResolvedReport);
     internal class ClientManager : IClientManager
     {
         //Variables
@@ -88,20 +90,35 @@ namespace ChatRoomClient.DomainLayer
 
             serverCommunicationInfo.LogReportCallback(messageSent);
 
-            var serverActionResolvedReport = _serverAction.ResolveCommunicationFromServer(_tcpClient);
-            if (string.IsNullOrEmpty(serverActionResolvedReport.MessageFromServer))
+            void GetServerActionResolvedReport(ServerActionResolvedReport serverActionResolvedReport)
             {
-                DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                if (string.IsNullOrEmpty(serverActionResolvedReport.MessageFromServer))
+                {
+                    DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                }
+                else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.Exception))
+                {
+                    serverCommunicationInfo.LogReportCallback(serverActionResolvedReport.MessageFromServer);
+                    DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                }
+                else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.ServerPayload))
+                {
+                    serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
+                }
             }
-            else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.Exception))
+
+
+            ServerActionReportDelegate serverActionReportCallback = new ServerActionReportDelegate(GetServerActionResolvedReport);
+
+            Thread ThreadServerCommunication = new Thread(() => 
             {
-                serverCommunicationInfo.LogReportCallback(serverActionResolvedReport.MessageFromServer);
-                DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
-            }
-            else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.ServerPayload))
-            {
-                serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
-            }
+                _serverAction.ResolveCommunicationFromServer(_tcpClient, serverActionReportCallback);
+            });
+
+            ThreadServerCommunication.IsBackground= true;
+            ThreadServerCommunication.Name = "ThreadServerCommunication";
+            ThreadServerCommunication.Start();
+
         }
 
         #endregion Private Methods

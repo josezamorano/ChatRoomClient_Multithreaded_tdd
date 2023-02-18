@@ -1,11 +1,6 @@
 ﻿using ChatRoomClient.Services;
 using ChatRoomClient.Utils.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatRoomClient.DomainLayer
 {
@@ -39,22 +34,26 @@ namespace ChatRoomClient.DomainLayer
             }
         }
 
-        public string ReceiveMessageFromServer(TcpClient tcpClient)
+        public void ReceiveMessageFromServer(TcpClient tcpClient, MessageFromServerDelegate messageFromServerCallback)
         {
             try
             {
                 StreamReader reader = _streamProvider.CreateStreamReader(tcpClient.GetStream());
-                if (tcpClient.Connected)
+                while (tcpClient.Connected)
                 {
                     string message = reader.ReadLine(); // block here until we receive something from the server.
-                    return message;
+                    messageFromServerCallback(message);
+                    if (message == null)
+                    {
+                        break;
+                    }
                 }
-                return null;
+               
             }
             catch(Exception ex)
             {
                 string log = Notification.CRLF + Notification.Exception + "Problem Receiving message from the server..." + Notification.CRLF + ex.ToString();
-                return log;
+                messageFromServerCallback(log);
             }
         }
     }

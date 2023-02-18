@@ -113,6 +113,12 @@ namespace ChatRoomClient
             };
             txtClientStatus.BeginInvoke(actionTxtClientStatus);
 
+            Action actionLblUsernameStatus = () => 
+            {
+                lblUsernameStatus.Text = (clientIsConnected) ? lblUsernameStatus.Text : string.Empty;
+            };
+            lblUsernameStatus.BeginInvoke(actionLblUsernameStatus);
+
             Action actionBtnConnect = () => 
             {
                 btnConnect.Enabled = (clientIsConnected) ? false : true;
