@@ -9,7 +9,7 @@ namespace ChatRoomClient.Utils.Interfaces
     {
         string ResolveCommunicationToServer(TcpClient tcpClient, MessageActionType messageActionType, string username);
 
-        void ResolveCommunicationFromServer(TcpClient tcpClient, ServerActionReportDelegate serverActionReportCallback);
+        void ResolveCommunicationFromServer(TcpClient tcpClient, ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback);
 
         ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload);
     }

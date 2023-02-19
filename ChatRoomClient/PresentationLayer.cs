@@ -2,6 +2,7 @@ using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Services.Models;
 using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
+using System.Windows.Forms;
 
 namespace ChatRoomClient
 {
@@ -34,14 +35,21 @@ namespace ChatRoomClient
             txtClientStatus.Text = _clientDisconnected;
             txtClientStatus.ForeColor= Color.Red;
             txtClientStatus.BackColor = txtClientStatus.BackColor;
+            
             lblWarningUsername.Text = string.Empty;
             lblWarningIPAddress.Text = string.Empty;
             lblWarningPort.Text = string.Empty;
+            lblWarningChatRoomName.Text = string.Empty;
+            lblWarningGuests.Text = string.Empty;
+
             lblUsernameStatus.Text = string.Empty;
 
             btnConnect.Enabled = true;
             btnDisconnect.Enabled = false;
             btnUsernameRetry.Enabled = false;
+            btnCreateChatRoomSendInvites.Enabled = false;
+
+            chkBoxAddGuests.Enabled = false;
         }
 
         private void txtUsername_TextChanged(object sender, EventArgs e)
@@ -68,6 +76,33 @@ namespace ChatRoomClient
             txtPort.Text = filteredText;
         }
 
+        private void txtChatRoomName_TextChanged(object sender, EventArgs e)
+        {
+            lblWarningChatRoomName.Text = string.Empty;
+            var filteredText = string.Concat(txtChatRoomName.Text.Where(char.IsLetterOrDigit));
+            txtChatRoomName.Text = filteredText;
+        }
+
+        private void chkBoxAddGuests_CheckedChanged(object sender, EventArgs e)
+        {
+            checkedListServerUsers.Enabled = (chkBoxAddGuests.Checked) ? true : false;
+        }
+              
+        private void checkedListServerUsers_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            string item = checkedListServerUsers.Items[e.Index].ToString();
+            if (e.NewValue == CheckState.Checked)
+            {               
+                listBoxAllGuests.Items.Add(item);
+            }
+            else
+            {
+                listBoxAllGuests.Items.Remove(item);
+            }               
+        }
+
+
+        //BUTTONS Begin*************
         private void BtnClientConnectToServer_ClickEvent(object sender, EventArgs e)
         {
             bool isValid = RevolveClientInputValidation();
@@ -84,11 +119,13 @@ namespace ChatRoomClient
             _clientManager.DisconnectFromServer(logReportCallback , connectionReportCallback);
         }
 
-        private void btnUsernameRetry_Click(object sender, EventArgs e)
+        private void BtnUsernameRetry_Click(object sender, EventArgs e)
         {
             ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
             _clientManager.SendMessageToServer(serverCommunicationInfo);
         }
+
+        //BUTTONS End***************
         #endregion Event Handlers
 
         #region Callbacks
@@ -150,6 +187,18 @@ namespace ChatRoomClient
                 }                
             };
             checkedListServerUsers.BeginInvoke(actionCheckedList);
+
+            Action actionChkBoxAddGuest = () => 
+            {
+                chkBoxAddGuests.Enabled = (clientIsConnected) ? true : false;
+            };
+            chkBoxAddGuests.BeginInvoke(actionChkBoxAddGuest);
+
+            Action actionBtnCreateChatRoom = () =>
+            { 
+                btnCreateChatRoomSendInvites.Enabled = (clientIsConnected) ? true : false;
+            };
+            btnCreateChatRoomSendInvites.BeginInvoke(actionBtnCreateChatRoom);
         }
 
         private void UsernameActivationStatusCallback(MessageActionType messageActionType)
@@ -211,9 +260,12 @@ namespace ChatRoomClient
             string[] usernameOtherActiveUsers = otherActiveUsers.Select(a => a.Username).ToArray();           
             Action actionCheckedList = ()=>
             {
+                string[] testValues = { "userJoe", "UserTom", "UserPete" };
+
                 checkedListServerUsers.Items.Clear();
+                checkedListServerUsers.Items.AddRange(testValues);
                 checkedListServerUsers.Items.AddRange(usernameOtherActiveUsers);
-                checkedListServerUsers.SelectionMode = SelectionMode.None;
+                checkedListServerUsers.Enabled = false;
                 checkedListServerUsers.Refresh();
             };
             checkedListServerUsers.BeginInvoke(actionCheckedList);
@@ -279,6 +331,9 @@ namespace ChatRoomClient
             }
             return inputsReport.InputsAreValid;
         }
+
+
+
 
 
         #endregion Private Methods

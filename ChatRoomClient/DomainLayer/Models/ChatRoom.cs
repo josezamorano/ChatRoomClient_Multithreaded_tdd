@@ -1,11 +1,4 @@
-﻿using ChatRoomClient.Utils.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ChatRoomClient.DomainLayer.Models
+﻿namespace ChatRoomClient.DomainLayer.Models
 {
     public class ChatRoom
     {

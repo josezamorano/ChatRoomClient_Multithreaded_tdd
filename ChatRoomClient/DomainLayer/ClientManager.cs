@@ -55,7 +55,7 @@ namespace ChatRoomClient.DomainLayer
 
 
         public void SendMessageToServer( ServerCommunicationInfo serverCommunicationInfo )
-        {
+        {           
             ExecuteCommunicationWithServer(MessageActionType.CreateUser, serverCommunicationInfo);
         }
         public void DisconnectFromServer(ClientLogReportDelegate logReportCallback , ClientConnectionReportDelegate connectionReportCallback)
@@ -113,7 +113,7 @@ namespace ChatRoomClient.DomainLayer
 
             Thread ThreadServerCommunication = new Thread(() => 
             {
-                _serverAction.ResolveCommunicationFromServer(_tcpClient, serverActionReportCallback);
+                _serverAction.ResolveCommunicationFromServer(_tcpClient, serverCommunicationInfo, serverActionReportCallback);
             });
 
             ThreadServerCommunication.IsBackground= true;

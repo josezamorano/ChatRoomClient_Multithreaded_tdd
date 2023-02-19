@@ -13,6 +13,7 @@ namespace ChatRoomClient.DomainLayer
         IUserChatRoomAssistant _userChatRoomAssistantInstance;
         ISerializationProvider _serializationProvider;
         ITransmitter _transmitter;
+        private string _currentUsername;
         public ServerAction(IUserChatRoomAssistant userChatRoomAssistant, ISerializationProvider serializationProvider, ITransmitter transmitter)
         {
             _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
@@ -23,6 +24,8 @@ namespace ChatRoomClient.DomainLayer
 
         public string ResolveCommunicationToServer(TcpClient tcpClient, MessageActionType messageActionType, string username)
         {
+            _currentUsername= username;
+
             Payload payload = new Payload()
             {
                 MessageActionType = messageActionType,
@@ -34,7 +37,7 @@ namespace ChatRoomClient.DomainLayer
             return notificationMessage;
         }
 
-        public void ResolveCommunicationFromServer(TcpClient tcpClient , ServerActionReportDelegate serverActionReportCallback)
+        public void ResolveCommunicationFromServer(TcpClient tcpClient , ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback)
         {            
 
             void ProcessMessageFromServerCallback(string messageReceived)
@@ -63,31 +66,23 @@ namespace ChatRoomClient.DomainLayer
             _transmitter.ReceiveMessageFromServer(tcpClient , messageFromServerCallback);
         }
 
-        public ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload)
+        public ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload )
         {
             ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
 
             switch (payload.MessageActionType)
             {
                 case MessageActionType.UserActivated:
-
-                    User user = new User()
-                    { 
-                        Username = payload.ClientUsername,
-                        UserID = (Guid)payload.UserGuid
-                    };
-
-                    _userChatRoomAssistantInstance.SetActiveUser(user);
-                    ServerUser? userForRemoval = payload.ActiveServerUsers.Where(a => a.ServerUserID == user.UserID).FirstOrDefault();
-                    if (userForRemoval != null) 
+                    ServerUser? userForActivation = payload.ActiveServerUsers.Where(a => a.Username.ToLower() == _currentUsername.ToLower()).FirstOrDefault();
+                   
+                    if (userForActivation != null) 
                     {
-                        payload.ActiveServerUsers.Remove(userForRemoval);
+                        SetActiveUserInUserChatAssistantInstance(userForActivation);
+                        payload.ActiveServerUsers.Remove(userForActivation);
                     }                    
 
                     serverActionResolvedReport.MessageActionType = payload.MessageActionType;
-                    serverActionResolvedReport.AllActiveServerUsers = payload.ActiveServerUsers;
-                    //add user to the chatroom assistant
-                    //send list of server users to client manager
+                    serverActionResolvedReport.AllActiveServerUsers = payload.ActiveServerUsers;                   
                     break;
 
                 case MessageActionType.RetryUsernameTaken:
@@ -97,5 +92,23 @@ namespace ChatRoomClient.DomainLayer
             }
             return serverActionResolvedReport;
         }
+
+        #region Private Methods
+        private void SetActiveUserInUserChatAssistantInstance(ServerUser userForActivation)
+        {
+            if (userForActivation == null) { return; }
+            
+            IUser currentActiveUser = _userChatRoomAssistantInstance.GetActiveUser();
+            if (currentActiveUser == null)
+            {
+                User activeUser = new User()
+                {
+                    Username = userForActivation.Username,
+                    UserID = (Guid)userForActivation.ServerUserID
+                };
+                _userChatRoomAssistantInstance.SetActiveUser(activeUser);
+            }            
+        }
+        #endregion Private Methods 
     }
 }
