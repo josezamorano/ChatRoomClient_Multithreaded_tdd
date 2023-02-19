@@ -38,6 +38,8 @@ namespace ChatRoomClient.DomainLayer
         {
             try
             {
+                if (tcpClient == null) { return;}
+
                 StreamReader reader = _streamProvider.CreateStreamReader(tcpClient.GetStream());
                 while (tcpClient.Connected)
                 {
@@ -47,8 +49,7 @@ namespace ChatRoomClient.DomainLayer
                     {
                         break;
                     }
-                }
-               
+                }               
             }
             catch(Exception ex)
             {

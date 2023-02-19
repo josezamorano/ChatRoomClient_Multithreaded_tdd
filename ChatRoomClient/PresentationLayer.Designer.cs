@@ -43,11 +43,12 @@
             this.lblWarningUsername = new System.Windows.Forms.Label();
             this.btnConnect = new System.Windows.Forms.Button();
             this.btnDisconnect = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.txtUsernameChatRoom = new System.Windows.Forms.TextBox();
+            this.lblOtherActiveUsers = new System.Windows.Forms.Label();
             this.lblUsernameStatus = new System.Windows.Forms.Label();
             this.btnUsernameRetry = new System.Windows.Forms.Button();
+            this.checkedListServerUsers = new System.Windows.Forms.CheckedListBox();
             this.txtClientLog = new System.Windows.Forms.TextBox();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
@@ -60,7 +61,6 @@
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 26.89211F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 73.10789F));
             this.tableLayoutPanel1.Controls.Add(this.tableLayoutPanel2, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.label1, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this.tableLayoutPanel3, 1, 0);
             this.tableLayoutPanel1.Controls.Add(this.txtClientLog, 0, 1);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -263,15 +263,6 @@
             this.btnDisconnect.UseVisualStyleBackColor = true;
             this.btnDisconnect.Click += new System.EventHandler(this.BtnClientDisconnectFromServer_ClickEvent);
             // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(337, 352);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(50, 20);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "label1";
-            // 
             // tableLayoutPanel3
             // 
             this.tableLayoutPanel3.CellBorderStyle = System.Windows.Forms.TableLayoutPanelCellBorderStyle.Single;
@@ -281,16 +272,19 @@
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 117F));
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 436F));
             this.tableLayoutPanel3.Controls.Add(this.txtUsernameChatRoom, 0, 1);
+            this.tableLayoutPanel3.Controls.Add(this.lblOtherActiveUsers, 0, 2);
             this.tableLayoutPanel3.Controls.Add(this.lblUsernameStatus, 0, 0);
             this.tableLayoutPanel3.Controls.Add(this.btnUsernameRetry, 2, 1);
+            this.tableLayoutPanel3.Controls.Add(this.checkedListServerUsers, 0, 3);
             this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel3.Location = new System.Drawing.Point(337, 3);
             this.tableLayoutPanel3.Name = "tableLayoutPanel3";
             this.tableLayoutPanel3.RowCount = 4;
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 37.03704F));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 62.96296F));
-            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 184F));
-            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 104F));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 25F));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 127F));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 136F));
             this.tableLayoutPanel3.Size = new System.Drawing.Size(902, 346);
             this.tableLayoutPanel3.TabIndex = 2;
             // 
@@ -304,6 +298,15 @@
             this.txtUsernameChatRoom.ReadOnly = true;
             this.txtUsernameChatRoom.Size = new System.Drawing.Size(338, 27);
             this.txtUsernameChatRoom.TabIndex = 0;
+            // 
+            // lblOtherActiveUsers
+            // 
+            this.lblOtherActiveUsers.AutoSize = true;
+            this.lblOtherActiveUsers.Location = new System.Drawing.Point(4, 54);
+            this.lblOtherActiveUsers.Name = "lblOtherActiveUsers";
+            this.lblOtherActiveUsers.Size = new System.Drawing.Size(130, 20);
+            this.lblOtherActiveUsers.TabIndex = 1;
+            this.lblOtherActiveUsers.Text = "Other Active Users";
             // 
             // lblUsernameStatus
             // 
@@ -319,11 +322,21 @@
             // 
             this.btnUsernameRetry.Location = new System.Drawing.Point(349, 24);
             this.btnUsernameRetry.Name = "btnUsernameRetry";
-            this.btnUsernameRetry.Size = new System.Drawing.Size(107, 27);
+            this.btnUsernameRetry.Size = new System.Drawing.Size(107, 26);
             this.btnUsernameRetry.TabIndex = 2;
             this.btnUsernameRetry.Text = "Retry";
             this.btnUsernameRetry.UseVisualStyleBackColor = true;
             this.btnUsernameRetry.Click += new System.EventHandler(this.btnUsernameRetry_Click);
+            // 
+            // checkedListServerUsers
+            // 
+            this.checkedListServerUsers.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.checkedListServerUsers.FormattingEnabled = true;
+            this.checkedListServerUsers.Location = new System.Drawing.Point(4, 83);
+            this.checkedListServerUsers.Name = "checkedListServerUsers";
+            this.tableLayoutPanel3.SetRowSpan(this.checkedListServerUsers, 2);
+            this.checkedListServerUsers.Size = new System.Drawing.Size(221, 259);
+            this.checkedListServerUsers.TabIndex = 3;
             // 
             // txtClientLog
             // 
@@ -376,8 +389,9 @@
         private Label lblWarningPort;
         private TableLayoutPanel tableLayoutPanel3;
         private TextBox txtUsernameChatRoom;
-        private Label label1;
+        private Label lblOtherActiveUsers;
         private Label lblUsernameStatus;
         private Button btnUsernameRetry;
+        private CheckedListBox checkedListServerUsers;
     }
 }

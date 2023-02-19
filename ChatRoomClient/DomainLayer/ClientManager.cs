@@ -104,6 +104,7 @@ namespace ChatRoomClient.DomainLayer
                 else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.ServerPayload))
                 {
                     serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
+                    serverCommunicationInfo.OtherServerUsersReportCallback(serverActionResolvedReport.AllActiveServerUsers);
                 }
             }
 

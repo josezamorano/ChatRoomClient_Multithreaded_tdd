@@ -11,6 +11,8 @@ namespace ChatRoomClient
     public delegate void ClientConnectionReportDelegate( bool isConnected );
 
     public delegate void UsernameStatusReportDelegate( MessageActionType messageActionType );
+
+    public delegate void OtherServerUsersReportDelegate(List<ServerUser> otherActiveUsers);
     public partial class PresentationLayer : Form
     {
         private string _clientConnected;
@@ -139,6 +141,15 @@ namespace ChatRoomClient
                 btnUsernameRetry.Refresh();
             };
             btnDisconnect.BeginInvoke(actionBtnUsernameRetry);
+
+            Action actionCheckedList = () =>
+            {
+                if (!clientIsConnected)
+                {
+                    checkedListServerUsers.Items.Clear();
+                }                
+            };
+            checkedListServerUsers.BeginInvoke(actionCheckedList);
         }
 
         private void UsernameActivationStatusCallback(MessageActionType messageActionType)
@@ -192,6 +203,21 @@ namespace ChatRoomClient
             };
             return actionBtnUsernameRetry;
         }
+
+
+        private void DisplayOtherActiveUsersCallback(List<ServerUser> otherActiveUsers)
+        {
+            if (otherActiveUsers == null) return;
+            string[] usernameOtherActiveUsers = otherActiveUsers.Select(a => a.Username).ToArray();           
+            Action actionCheckedList = ()=>
+            {
+                checkedListServerUsers.Items.Clear();
+                checkedListServerUsers.Items.AddRange(usernameOtherActiveUsers);
+                checkedListServerUsers.SelectionMode = SelectionMode.None;
+                checkedListServerUsers.Refresh();
+            };
+            checkedListServerUsers.BeginInvoke(actionCheckedList);
+        }
         #endregion Callbacks
 
 
@@ -202,6 +228,7 @@ namespace ChatRoomClient
             ClientLogReportDelegate logReportCallback = new ClientLogReportDelegate(ClientLogReportCallback);
             ClientConnectionReportDelegate connectionReportCallback = new ClientConnectionReportDelegate(ClientConnectionReportCallback);
             UsernameStatusReportDelegate usernameStatusReportCallback = new UsernameStatusReportDelegate(UsernameActivationStatusCallback);
+            OtherServerUsersReportDelegate otherServerUsersReportCallback = new OtherServerUsersReportDelegate(DisplayOtherActiveUsersCallback);
 
             ServerCommunicationInfo serverCommunicationInfo = new ServerCommunicationInfo()
             {
@@ -210,7 +237,8 @@ namespace ChatRoomClient
                 Username = txtUsername.Text.Trim(),
                 LogReportCallback = logReportCallback,
                 ConnectionReportCallback = connectionReportCallback,
-                UsernameStatusReportCallback = usernameStatusReportCallback
+                UsernameStatusReportCallback = usernameStatusReportCallback,
+                OtherServerUsersReportCallback= otherServerUsersReportCallback
             };
             return serverCommunicationInfo;
         }
