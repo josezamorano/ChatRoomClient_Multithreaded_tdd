@@ -10,5 +10,9 @@ namespace ChatRoomClient.Services.Models
         public string IPAddressReport { get; set; }
 
         public string PortReport { get; set; }
+
+        public string ChatRoomNameReport { get; set; }
+
+        public string GuestSelectorReport { get; set; }
     }
 }

@@ -4,49 +4,83 @@ using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
 using System.Net.Sockets;
 
+
+
 namespace ChatRoomClient.DomainLayer
 {
     public delegate void MessageFromServerDelegate(string messageFromServer);
     public class ServerAction : IServerAction
     {
-        
-        IUserChatRoomAssistant _userChatRoomAssistantInstance;
+
+        private string _currentUsername;
+        private bool _ClientIsActive;
+        private TcpClient _activeTcpClient;
+
+
         ISerializationProvider _serializationProvider;
         ITransmitter _transmitter;
-        private string _currentUsername;
-        public ServerAction(IUserChatRoomAssistant userChatRoomAssistant, ISerializationProvider serializationProvider, ITransmitter transmitter)
+        IObjectCreator _objectCreator;
+       
+        public ServerAction( ISerializationProvider serializationProvider, ITransmitter transmitter, IObjectCreator objectCreator)
         {
-            _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
             _serializationProvider = serializationProvider;
             _transmitter = transmitter;
+            _objectCreator = objectCreator;
         }
 
 
-        public string ResolveCommunicationToServer(TcpClient tcpClient, MessageActionType messageActionType, string username)
+        public void SetActiveTcpClient(TcpClient activeTcpClient)
         {
-            _currentUsername= username;
-
-            Payload payload = new Payload()
-            {
-                MessageActionType = messageActionType,
-                ClientUsername = username,
-                UserGuid = null
-            };
-            string serializedPayload = _serializationProvider.SerializeObject(payload);
-            string notificationMessage = _transmitter.SendMessageToServer(tcpClient, serializedPayload);
-            return notificationMessage;
+            _activeTcpClient = activeTcpClient;
         }
 
-        public void ResolveCommunicationFromServer(TcpClient tcpClient , ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback)
-        {            
 
+
+        public void ExecuteCommunicationSendMessageToServer(Payload payload, ServerCommunicationInfo serverCommunicationInfo)
+        {
+            string messageSent = ResolveCommunicationToServer(payload);
+            if (messageSent.Contains(Notification.Exception))
+            {
+                serverCommunicationInfo.LogReportCallback(messageSent);
+                ExecuteDisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                return;
+            }
+
+            serverCommunicationInfo.LogReportCallback(messageSent);
+        }
+
+        public void ExecuteDisconnectFromServer(ClientLogReportDelegate logReportCallback, ClientConnectionReportDelegate connectionReportCallback)
+        {
+            string log = string.Empty;
+            try
+            {
+                _ClientIsActive = false;
+                connectionReportCallback(_ClientIsActive);
+                _activeTcpClient.Close();
+                log = Notification.CRLF + "Disconnected from the server!";
+                logReportCallback(log);
+            }
+            catch (Exception ex)
+            {
+                connectionReportCallback(_ClientIsActive);
+                log = Notification.CRLF + Notification.Exception + "Problem disconnecting from the server..." + Notification.CRLF + ex.ToString();
+                logReportCallback(log);
+            }
+        }
+
+
+        public void ResolveCommunicationFromServer(ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback)
+        {
             void ProcessMessageFromServerCallback(string messageReceived)
             {
                 ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
 
-                if (string.IsNullOrEmpty(messageReceived) ||
-                     messageReceived.Contains(Notification.Exception) ||
-                     messageReceived.Contains(Notification.ServerMessage))
+                if (string.IsNullOrEmpty(messageReceived) || messageReceived.Contains(Notification.Exception))
+                {
+                    serverCommunicationInfo.LogReportCallback(messageReceived);
+                    ExecuteDisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                }
+                else if (messageReceived.Contains(Notification.ServerMessage))
                 {
                     serverActionResolvedReport.MessageFromServer = messageReceived;
                 }
@@ -57,27 +91,31 @@ namespace ChatRoomClient.DomainLayer
                     serverActionResolvedReport = ResolveActionRequestedByServer(payloadFromServer);
                     serverActionResolvedReport.MessageFromServer = messageReceived;
                 }
-
                 serverActionReportCallback(serverActionResolvedReport);
             }
 
             MessageFromServerDelegate messageFromServerCallback = new MessageFromServerDelegate(ProcessMessageFromServerCallback);
-
-            _transmitter.ReceiveMessageFromServer(tcpClient , messageFromServerCallback);
+            _transmitter.ReceiveMessageFromServer(_activeTcpClient , messageFromServerCallback);
         }
 
-        public ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload )
+
+        private ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload )
         {
             ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
 
             switch (payload.MessageActionType)
             {
+                case MessageActionType.RetryUsernameTaken:
+
+                    serverActionResolvedReport.MessageActionType = payload.MessageActionType;
+                    break;
+
                 case MessageActionType.UserActivated:
                     ServerUser? userForActivation = payload.ActiveServerUsers.Where(a => a.Username.ToLower() == _currentUsername.ToLower()).FirstOrDefault();
                    
                     if (userForActivation != null) 
-                    {
-                        SetActiveUserInUserChatAssistantInstance(userForActivation);
+                    {                        
+                        serverActionResolvedReport.MainUser = _objectCreator.CreateMainUser(userForActivation);
                         payload.ActiveServerUsers.Remove(userForActivation);
                     }                    
 
@@ -85,30 +123,24 @@ namespace ChatRoomClient.DomainLayer
                     serverActionResolvedReport.AllActiveServerUsers = payload.ActiveServerUsers;                   
                     break;
 
-                case MessageActionType.RetryUsernameTaken:
-
-                    serverActionResolvedReport.MessageActionType = payload.MessageActionType;
-                    break;
+               
             }
             return serverActionResolvedReport;
         }
 
         #region Private Methods
-        private void SetActiveUserInUserChatAssistantInstance(ServerUser userForActivation)
+
+
+        private string ResolveCommunicationToServer(Payload payload)
         {
-            if (userForActivation == null) { return; }
-            
-            IUser currentActiveUser = _userChatRoomAssistantInstance.GetActiveUser();
-            if (currentActiveUser == null)
-            {
-                User activeUser = new User()
-                {
-                    Username = userForActivation.Username,
-                    UserID = (Guid)userForActivation.ServerUserID
-                };
-                _userChatRoomAssistantInstance.SetActiveUser(activeUser);
-            }            
+            _currentUsername = payload.ClientUsername;
+            string serializedPayload = _serializationProvider.SerializeObject(payload);
+            string notificationMessage = _transmitter.SendMessageToServer(_activeTcpClient, serializedPayload);
+            return notificationMessage;
         }
+
+
+        
         #endregion Private Methods 
     }
 }

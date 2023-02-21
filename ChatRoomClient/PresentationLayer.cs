@@ -2,6 +2,9 @@ using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Services.Models;
 using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
+using System.ComponentModel;
+using System.Data;
+using System.Net.Http.Headers;
 using System.Windows.Forms;
 
 namespace ChatRoomClient
@@ -18,15 +21,23 @@ namespace ChatRoomClient
     {
         private string _clientConnected;
         private string _clientDisconnected;
+
+        List<ServerUser> _otherActiveUsers;
+
+
+
         private IClientManager _clientManager;
+        private IUserChatRoomAssistant _userChatRoomAssistantInstance;
         private IInputValidator _inputValidator;
-        public PresentationLayer(IClientManager clientManager, IInputValidator inputValidator)
+        public PresentationLayer(IClientManager clientManager, IInputValidator inputValidator, IUserChatRoomAssistant userChatRoomAssistant)
         {
             InitializeComponent();
+            _otherActiveUsers= new List<ServerUser>();
             _clientManager = clientManager;
             _inputValidator = inputValidator;
             _clientConnected = Enum.GetName(typeof(ClientStatus), ClientStatus.Connected);
-            _clientDisconnected = Enum.GetName(typeof(ClientStatus), ClientStatus.Disconnected);            
+            _clientDisconnected = Enum.GetName(typeof(ClientStatus), ClientStatus.Disconnected);
+            _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
         }
 
         #region Event Handlers
@@ -105,7 +116,7 @@ namespace ChatRoomClient
         //BUTTONS Begin*************
         private void BtnClientConnectToServer_ClickEvent(object sender, EventArgs e)
         {
-            bool isValid = RevolveClientInputValidation();
+            bool isValid = RevolveClientConnectToServerInputValidation();
             if (!isValid) { return; }
 
             ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
@@ -119,10 +130,21 @@ namespace ChatRoomClient
             _clientManager.DisconnectFromServer(logReportCallback , connectionReportCallback);
         }
 
-        private void BtnUsernameRetry_Click(object sender, EventArgs e)
+        private void BtnUsernameRetry_ClickEvent(object sender, EventArgs e)
         {
             ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
             _clientManager.SendMessageToServer(serverCommunicationInfo);
+        }
+
+        private void BtnCreateChatRoomAndSendInvite_ClickEvent(object sender, EventArgs e)
+        {
+            bool isValid = ResolveUserCreateChatRoomAndSendInviteInputValidation();
+            if (!isValid) { return; }
+
+
+            ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
+            _userChatRoomAssistantInstance.CreateChatRoomAndSendInvites(serverCommunicationInfo);
+
         }
 
         //BUTTONS End***************
@@ -256,6 +278,8 @@ namespace ChatRoomClient
 
         private void DisplayOtherActiveUsersCallback(List<ServerUser> otherActiveUsers)
         {
+            
+            _otherActiveUsers = otherActiveUsers;
             if (otherActiveUsers == null) return;
             string[] usernameOtherActiveUsers = otherActiveUsers.Select(a => a.Username).ToArray();           
             Action actionCheckedList = ()=>
@@ -268,7 +292,9 @@ namespace ChatRoomClient
                 checkedListServerUsers.Enabled = false;
                 checkedListServerUsers.Refresh();
             };
+
             checkedListServerUsers.BeginInvoke(actionCheckedList);
+
         }
         #endregion Callbacks
 
@@ -287,6 +313,8 @@ namespace ChatRoomClient
                 IPAddress = txtServerIPAddress.Text.Trim(),
                 Port = Int32.Parse(txtPort.Text.Trim()),
                 Username = txtUsername.Text.Trim(),
+                ChatRoomName = txtChatRoomName.Text.Trim(),
+                SelectedGuestUsers = GetAllSelectedServerUsers(),
                 LogReportCallback = logReportCallback,
                 ConnectionReportCallback = connectionReportCallback,
                 UsernameStatusReportCallback = usernameStatusReportCallback,
@@ -295,7 +323,7 @@ namespace ChatRoomClient
             return serverCommunicationInfo;
         }
 
-        private bool RevolveClientInputValidation()
+        private bool RevolveClientConnectToServerInputValidation()
         {
             lblWarningUsername.Text = string.Empty;
             lblWarningIPAddress.Text = string.Empty;
@@ -311,7 +339,7 @@ namespace ChatRoomClient
                 IPAddress = txtServerIPAddress.Text,
                 Port = txtPort.Text,
             };
-            var inputsReport = _inputValidator.ValidateClientInputs(clientInputs);
+            var inputsReport = _inputValidator.ValidateClientConnectToServerInputs(clientInputs);
             if (!inputsReport.InputsAreValid)
             {
                 lblWarningUsername.Text = inputsReport.UsernameReport;
@@ -332,8 +360,48 @@ namespace ChatRoomClient
             return inputsReport.InputsAreValid;
         }
 
+        private bool ResolveUserCreateChatRoomAndSendInviteInputValidation()
+        {
+            lblWarningChatRoomName.Text = string.Empty;
+            lblWarningGuests.Text = string.Empty;
 
+            ClientInputs clientInputs = new ClientInputs() 
+            {
+                ChatRoomName = txtChatRoomName.Text.Trim(),
+                GuestSelectorStatus = chkBoxAddGuests.Checked,
+            };
+            ClientInputsValidationReport report = _inputValidator.ValidateUserCreateChatRoomAndSendInvitesInputs(clientInputs);
 
+            if (!report.InputsAreValid)
+            {
+                lblWarningChatRoomName.Text = report.ChatRoomNameReport;
+                lblWarningChatRoomName.ForeColor = Color.Red;
+                lblWarningChatRoomName.BackColor = lblWarningChatRoomName.BackColor;
+                lblWarningChatRoomName.Refresh();
+
+                lblWarningGuests.Text = report.GuestSelectorReport;
+                lblWarningGuests.BackColor= lblWarningGuests.BackColor;
+                lblWarningGuests.ForeColor= Color.Red;
+                lblWarningGuests.Refresh();
+            }
+            return report.InputsAreValid;
+
+        }
+
+        private List<ServerUser> GetAllSelectedServerUsers()
+        {
+            List<ServerUser> selectedUsers = new List<ServerUser>();
+            foreach(var item in listBoxAllGuests.Items)
+            {
+                string itemUsernameLower = item.ToString().ToLower();
+                var selectedUser = _otherActiveUsers.Where(a=>a.Username.ToLower() == itemUsernameLower).FirstOrDefault();
+                if(selectedUser != null)
+                {
+                    selectedUsers.Add(selectedUser);
+                }
+            }
+            return selectedUsers;
+        }
 
 
         #endregion Private Methods

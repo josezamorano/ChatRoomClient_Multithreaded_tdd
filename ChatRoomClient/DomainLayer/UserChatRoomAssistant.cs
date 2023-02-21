@@ -1,47 +1,82 @@
 ﻿using ChatRoomClient.DomainLayer.Models;
+using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
 
 namespace ChatRoomClient.DomainLayer
 {
     public class UserChatRoomAssistant : IUserChatRoomAssistant
     {
-        private IUser _ActiveUser;
+        private IUser _ActiveMainUser;
+        List<ServerUser> _allActiveServerUsers;
 
-        private List<ChatRoom> _receivedPendingChatRoomInvites;
-
+        private List<Invite> _allReceivedPendingChatRoomInvites;
         private List<ChatRoom> _allActiveChatRooms;
 
-
-        public UserChatRoomAssistant()
+        IObjectCreator _objectCreator;
+        IServerAction _serverAction;
+        public UserChatRoomAssistant(IObjectCreator objectCreator, IServerAction serverAction)
         {
-        }
-
-        public void SetActiveUser(User user)
-        {
-            _ActiveUser = user;
-        }
-
-        public IUser GetActiveUser()
-        {
-            return _ActiveUser;
+            _objectCreator = objectCreator;
+            _serverAction = serverAction;
         }
 
         public IUserChatRoomAssistant GetInstance()
         {
             UserChatRoomAssistant userChatRoomAssistant = null;
-            if(userChatRoomAssistant == null)
+            if (userChatRoomAssistant == null)
             {
-                userChatRoomAssistant= new UserChatRoomAssistant();
+                userChatRoomAssistant = new UserChatRoomAssistant(_objectCreator, _serverAction);
             }
             return userChatRoomAssistant;
         }
 
-        public void AddUserToChatRoom()
+        public void SetActiveMainUser(IUser user)
         {
-            throw new NotImplementedException();
+            _ActiveMainUser = user;
         }
 
-        public void CreateChatRoom()
+        public IUser GetActiveMainUser()
+        {
+            return _ActiveMainUser;
+        }
+
+        public void SetAllActiveServerUsers(List<ServerUser> allActiveServerUsers)
+        {
+            _allActiveServerUsers= allActiveServerUsers;
+        }
+
+        public List<ServerUser> GetAllActiveServerUsers()
+        {
+            return _allActiveServerUsers;
+        }
+        
+        public void CreateChatRoomAndSendInvites(ServerCommunicationInfo serverCommunicationInfo)
+        {
+            string chatRoomName = serverCommunicationInfo.ChatRoomName;
+            ServerUser mainServerUser = GetMainUserAsServerUser();
+            var allInvitesForGuests = _objectCreator.CreateInvitesForAllGuestServerUsers(mainServerUser, chatRoomName, serverCommunicationInfo.SelectedGuestUsers);
+            var chatRoom = _objectCreator.CreateChatRoom(mainServerUser, chatRoomName , allInvitesForGuests );
+            Payload payload = _objectCreator.CreatePayload(MessageActionType.AssistantCreateChatRoomAndSendInvites,mainServerUser.Username,mainServerUser.ServerUserID,chatRoom);
+            _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
+        }
+
+
+        #region Private Methods
+
+        private ServerUser GetMainUserAsServerUser()
+        {
+            ServerUser chatRoomCreatorServerUser = new ServerUser()
+            {
+                ServerUserID = _ActiveMainUser.UserID,
+                Username = _ActiveMainUser.Username
+            };
+            return chatRoomCreatorServerUser;
+        }
+
+        #endregion Private Methods
+
+
+        public void AddUserToChatRoom()
         {
             throw new NotImplementedException();
         }
@@ -61,10 +96,6 @@ namespace ChatRoomClient.DomainLayer
             throw new NotImplementedException();
         }
 
-        public void SendInvitesToUsers()
-        {
-            throw new NotImplementedException();
-        }
 
         public void SetListOfUsersToChatRoom()
         {

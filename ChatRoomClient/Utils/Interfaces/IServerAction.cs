@@ -7,10 +7,13 @@ namespace ChatRoomClient.Utils.Interfaces
 {
     public interface IServerAction
     {
-        string ResolveCommunicationToServer(TcpClient tcpClient, MessageActionType messageActionType, string username);
+        void SetActiveTcpClient(TcpClient activeTcpClient);
 
-        void ResolveCommunicationFromServer(TcpClient tcpClient, ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback);
+        void ExecuteDisconnectFromServer(ClientLogReportDelegate logReportCallback, ClientConnectionReportDelegate connectionReportCallback);
 
-        ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload);
+        void ExecuteCommunicationSendMessageToServer(Payload payload, ServerCommunicationInfo serverCommunicationInfo);
+               
+        void ResolveCommunicationFromServer(ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback);
+
     }
 }

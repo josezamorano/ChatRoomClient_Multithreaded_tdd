@@ -9,7 +9,7 @@ namespace ChatRoomClient.Services
         ClientInputsValidationReport clientInputsValidationReport;
 
 
-        public ClientInputsValidationReport ValidateClientInputs(ClientInputs clientInputs)
+        public ClientInputsValidationReport ValidateClientConnectToServerInputs(ClientInputs clientInputs)
         {
             clientInputsValidationReport = new ClientInputsValidationReport();
             clientInputsValidationReport.InputsAreValid = true;
@@ -25,6 +25,22 @@ namespace ChatRoomClient.Services
                 clientInputsValidationReport.InputsAreValid = false;
             }
 
+            return clientInputsValidationReport;
+        }
+
+        public ClientInputsValidationReport ValidateUserCreateChatRoomAndSendInvitesInputs(ClientInputs clientInputs)
+        {
+            clientInputsValidationReport= new ClientInputsValidationReport();
+            clientInputsValidationReport.InputsAreValid= true;
+            clientInputsValidationReport.ChatRoomNameReport = ResolveChatRoom(clientInputs.ChatRoomName.Trim());
+            clientInputsValidationReport.GuestSelectorReport = ResolveGuestSelector(clientInputs.GuestSelectorStatus);
+
+            if(!string.IsNullOrEmpty(clientInputsValidationReport.ChatRoomNameReport) ||
+                !string.IsNullOrEmpty(clientInputsValidationReport.GuestSelectorReport)
+                )
+            {
+                clientInputsValidationReport.InputsAreValid = false;
+            }
             return clientInputsValidationReport;
         }
 
@@ -103,7 +119,6 @@ namespace ChatRoomClient.Services
             return string.Empty;
         }
 
-
         private string ResolvePortNumberForClients(string port)
         {
             int portNumber = 0;
@@ -114,6 +129,26 @@ namespace ChatRoomClient.Services
             }
 
             return Notification.PortWarningInsert;
+        }
+
+
+        private string ResolveChatRoom(string username)
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrWhiteSpace(username))
+            {
+                return Notification.ChatRoomWarning;
+            }
+            return string.Empty;
+        }
+
+
+        private string ResolveGuestSelector(bool statusIsActive)
+        {
+            if (!statusIsActive)
+            {
+                return Notification.GuestSelectorUnChecked;
+            }
+            return string.Empty;
         }
 
         #endregion Private Methods

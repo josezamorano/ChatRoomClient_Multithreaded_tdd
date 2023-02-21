@@ -8,10 +8,12 @@
 
         public  string ChatRoomIdentifierNameId { get; set; }
 
+        public ServerUser Creator { get; set; }
+
         public string ConversationRecord { get; set; }
 
-        public List<User> ActiveUsersInChatRoom { get; set; }
+        public List<ServerUser> AllActiveUsersInChatRoom { get; set; }
 
-        public List<User> InvitedUsers { get; set; }
+        public List<Invite> AllInvitesSentToGuestUsers { get; set; }
     }
 }

@@ -12,33 +12,39 @@ namespace ChatRoomClient.DomainLayer
     internal class ClientManager : IClientManager
     {
         //Variables
-        private IPAddress _serverIpAddress;        
+        private IPAddress _serverIpAddress;
         private TcpClient _tcpClient;
-        private string _clientLogger;
         private bool _ClientIsActive = false;
 
         IServerAction _serverAction;
-        public ClientManager( IServerAction serverAction )
+        IUserChatRoomAssistant _userChatRoomAssistantInstance;
+        IObjectCreator _objectCreator;
+        public ClientManager(IServerAction serverAction, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator)
         {
             _serverAction = serverAction;
+            _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
+            _objectCreator = objectCreator;
         }
 
         public void ConnectToServer(ServerCommunicationInfo serverCommunicationInfo)
         {
+            string log = string.Empty;
             try
-            {                
-                _serverIpAddress = IPAddress.Parse(serverCommunicationInfo.IPAddress);                
-                _clientLogger = Notification.CRLF + "Attempting to Connect to Server...";
-                serverCommunicationInfo.LogReportCallback(_clientLogger);
+            {
+                _serverIpAddress = IPAddress.Parse(serverCommunicationInfo.IPAddress);
+                log = Notification.CRLF + "Attempting to Connect to Server...";
+                serverCommunicationInfo.LogReportCallback(log);
                 _tcpClient = new TcpClient(_serverIpAddress.ToString(), serverCommunicationInfo.Port);
 
-                Thread threadClientConnection = new Thread(() => 
+                Thread threadClientConnection = new Thread(() =>
                 {
-                    _ClientIsActive = true;
+                    _ClientIsActive = true;                   
                     serverCommunicationInfo.ConnectionReportCallback(_ClientIsActive);
-                    _clientLogger = Notification.CRLF + "Client connected to server Successfully.";
-                    serverCommunicationInfo.LogReportCallback(_clientLogger);
-                    ExecuteCommunicationWithServer(MessageActionType.ClientConnectToServer, serverCommunicationInfo);
+                    _serverAction.SetActiveTcpClient(_tcpClient);
+                    log = Notification.CRLF + "Client connected to server Successfully.";
+                    serverCommunicationInfo.LogReportCallback(log);
+                    ProcessCommunicationSendMessageToServer(MessageActionType.ClientConnectToServer, serverCommunicationInfo);
+                    ExecuteCommunicationReceiveMessageFromServer(serverCommunicationInfo);
                 });
                 threadClientConnection.IsBackground = true;
                 threadClientConnection.Name = "BackgroundThreadConnection";
@@ -46,80 +52,72 @@ namespace ChatRoomClient.DomainLayer
             }
             catch (Exception ex)
             {
-                _ClientIsActive= false;
-                serverCommunicationInfo.ConnectionReportCallback(_ClientIsActive);
-                _clientLogger = Notification.CRLF + Notification.Exception + "Problem connecting to server... " + Notification.CRLF + ex.ToString();
-                serverCommunicationInfo.LogReportCallback(_clientLogger);
-            }
-        }
-
-
-        public void SendMessageToServer( ServerCommunicationInfo serverCommunicationInfo )
-        {           
-            ExecuteCommunicationWithServer(MessageActionType.CreateUser, serverCommunicationInfo);
-        }
-        public void DisconnectFromServer(ClientLogReportDelegate logReportCallback , ClientConnectionReportDelegate connectionReportCallback)
-        {
-            try
-            {
                 _ClientIsActive = false;
-                connectionReportCallback(_ClientIsActive);
-                _tcpClient.Close();
-                _clientLogger = Notification.CRLF + "Disconnected from the server!";
-                logReportCallback(_clientLogger);
-            }
-            catch (Exception ex)
-            {
-                connectionReportCallback(_ClientIsActive);
-                _clientLogger = Notification.CRLF + Notification.Exception + "Problem disconnecting from the server..." + Notification.CRLF + ex.ToString();
-                logReportCallback(_clientLogger);
+                serverCommunicationInfo.ConnectionReportCallback(_ClientIsActive);
+                log = Notification.CRLF + Notification.Exception + "Problem connecting to server... " + Notification.CRLF + ex.ToString();
+                serverCommunicationInfo.LogReportCallback(log);
             }
         }
+
+        public void SendMessageToServer(ServerCommunicationInfo serverCommunicationInfo)
+        {
+            ProcessCommunicationSendMessageToServer(MessageActionType.CreateUser, serverCommunicationInfo);
+        }
+
+        public void DisconnectFromServer(ClientLogReportDelegate logReportCallback, ClientConnectionReportDelegate connectionReportCallback)
+        {
+            _serverAction.ExecuteDisconnectFromServer(logReportCallback, connectionReportCallback);
+        }
+
+
 
         #region Private Methods
 
-        private void ExecuteCommunicationWithServer( MessageActionType messageActionType, ServerCommunicationInfo serverCommunicationInfo)
+        private void ProcessCommunicationSendMessageToServer(MessageActionType messageActionType, ServerCommunicationInfo serverCommunicationInfo)
         {
-            string messageSent = _serverAction.ResolveCommunicationToServer(_tcpClient, messageActionType, serverCommunicationInfo.Username);
-            if (messageSent.Contains(Notification.Exception))
-            {
-                serverCommunicationInfo.LogReportCallback(messageSent);
-                DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
-                return;
-            }
+            Payload payload = _objectCreator.CreatePayload(messageActionType, serverCommunicationInfo.Username);
+            _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
+        }
 
-            serverCommunicationInfo.LogReportCallback(messageSent);
-
+        private void ExecuteCommunicationReceiveMessageFromServer(ServerCommunicationInfo serverCommunicationInfo)
+        {
             void GetServerActionResolvedReport(ServerActionResolvedReport serverActionResolvedReport)
             {
-                if (string.IsNullOrEmpty(serverActionResolvedReport.MessageFromServer))
+                switch (serverActionResolvedReport.MessageActionType)
                 {
-                    DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
-                }
-                else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.Exception))
-                {
-                    serverCommunicationInfo.LogReportCallback(serverActionResolvedReport.MessageFromServer);
-                    DisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
-                }
-                else if (serverActionResolvedReport.MessageFromServer.Contains(Notification.ServerPayload))
-                {
-                    serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
-                    serverCommunicationInfo.OtherServerUsersReportCallback(serverActionResolvedReport.AllActiveServerUsers);
-                }
-            }
+                    case MessageActionType.RetryUsernameTaken:
+                        serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
+                        break;
 
+                    case MessageActionType.UserActivated:
+                        SetActiveUserInUserChatAssistant(serverActionResolvedReport.MainUser);
+                        _userChatRoomAssistantInstance.SetAllActiveServerUsers(serverActionResolvedReport.AllActiveServerUsers);
+                        serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
+                        serverCommunicationInfo.OtherServerUsersReportCallback(serverActionResolvedReport.AllActiveServerUsers);
+                        break;
+                }                           
+            }
 
             ServerActionReportDelegate serverActionReportCallback = new ServerActionReportDelegate(GetServerActionResolvedReport);
 
-            Thread ThreadServerCommunication = new Thread(() => 
+            Thread ThreadServerCommunication = new Thread(() =>
             {
-                _serverAction.ResolveCommunicationFromServer(_tcpClient, serverCommunicationInfo, serverActionReportCallback);
+                _serverAction.ResolveCommunicationFromServer(serverCommunicationInfo, serverActionReportCallback);
             });
 
-            ThreadServerCommunication.IsBackground= true;
+            ThreadServerCommunication.IsBackground = true;
             ThreadServerCommunication.Name = "ThreadServerCommunication";
             ThreadServerCommunication.Start();
+        }
+           
 
+        private void SetActiveUserInUserChatAssistant(IUser userForActivation)
+        {
+            IUser currentActiveMainUser = _userChatRoomAssistantInstance.GetActiveMainUser();
+            if (currentActiveMainUser == null)
+            {
+                _userChatRoomAssistantInstance.SetActiveMainUser(userForActivation);
+            }
         }
 
         #endregion Private Methods

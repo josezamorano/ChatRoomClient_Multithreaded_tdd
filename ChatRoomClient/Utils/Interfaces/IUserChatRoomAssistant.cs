@@ -1,13 +1,19 @@
-﻿using ChatRoomClient.DomainLayer;
+﻿using ChatRoomClient.DomainLayer.Models;
 
 namespace ChatRoomClient.Utils.Interfaces
 {
     public interface IUserChatRoomAssistant
     {
-        void SetActiveUser(User user);
-
         IUserChatRoomAssistant GetInstance();
 
-        IUser GetActiveUser();
+        void SetActiveMainUser(IUser user);
+        
+        IUser GetActiveMainUser();
+
+        void SetAllActiveServerUsers(List<ServerUser> allActiveServerUsers);
+
+        List<ServerUser> GetAllActiveServerUsers();
+
+        void CreateChatRoomAndSendInvites(ServerCommunicationInfo serverCommunicationInfo);
     }
 }

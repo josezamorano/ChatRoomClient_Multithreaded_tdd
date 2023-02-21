@@ -349,7 +349,7 @@
             this.btnUsernameRetry.TabIndex = 2;
             this.btnUsernameRetry.Text = "Retry";
             this.btnUsernameRetry.UseVisualStyleBackColor = true;
-            this.btnUsernameRetry.Click += new System.EventHandler(this.BtnUsernameRetry_Click);
+            this.btnUsernameRetry.Click += new System.EventHandler(this.BtnUsernameRetry_ClickEvent);
             // 
             // checkedListServerUsers
             // 
@@ -453,6 +453,7 @@
             this.btnCreateChatRoomSendInvites.TabIndex = 9;
             this.btnCreateChatRoomSendInvites.Text = "Create ChatRoom And Send Invites";
             this.btnCreateChatRoomSendInvites.UseVisualStyleBackColor = true;
+            this.btnCreateChatRoomSendInvites.Click += new System.EventHandler(this.BtnCreateChatRoomAndSendInvite_ClickEvent);
             // 
             // txtClientLog
             // 

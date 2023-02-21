@@ -2,6 +2,11 @@
 {
     public interface IUser
     {
+        Guid UserID { get; set; }
+
+        string Username { get; set; }
+
+
         void AcceptInvite();
 
         void RejectInvite();

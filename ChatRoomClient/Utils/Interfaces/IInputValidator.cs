@@ -4,6 +4,8 @@ namespace ChatRoomClient.Utils.Interfaces
 {
     public interface IInputValidator
     {
-        ClientInputsValidationReport ValidateClientInputs(ClientInputs clientInputs);
+        ClientInputsValidationReport ValidateClientConnectToServerInputs(ClientInputs clientInputs);
+
+        ClientInputsValidationReport ValidateUserCreateChatRoomAndSendInvitesInputs(ClientInputs clientInputs);
     }
 }

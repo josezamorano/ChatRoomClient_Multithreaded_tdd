@@ -1,4 +1,6 @@
-﻿namespace ChatRoomClient.Services
+﻿using System.Net.NetworkInformation;
+
+namespace ChatRoomClient.Services
 {
     public static class Notification
     {
@@ -19,5 +21,9 @@
         public static string IPAddressWarningInsert = "Insert a valid IP Address";
 
         public static string PortWarningInsert = "Insert a port Number between 49152 and 65535";
+
+        public static string ChatRoomWarning = "Insert a chat room name";
+
+        public static string GuestSelectorUnChecked = "Please Checke the Guest Selector";
     }
 }
