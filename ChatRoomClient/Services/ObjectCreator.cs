@@ -36,7 +36,7 @@ namespace ChatRoomClient.Services
             {
                 MessageActionType = messageActionType,
                 ClientUsername = username,
-                UserGuid = mainUserId,
+                UserId = mainUserId,
                 ChatRoomCreated = chatRoom
             };
             return payload;
@@ -48,6 +48,7 @@ namespace ChatRoomClient.Services
             ChatRoom chatRoom = new ChatRoom()
             {
                 ChatRoomName = chatRoomName,
+                ChatRoomStatus = ChatRoomStatus.Created,
                 Creator = chatRoomCreatorMainServerUser,
                 ConversationRecord = string.Empty,
                 AllActiveUsersInChatRoom = allActiveUsersInChatRoom,

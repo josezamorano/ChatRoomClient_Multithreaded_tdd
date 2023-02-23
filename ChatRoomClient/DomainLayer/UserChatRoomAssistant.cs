@@ -56,7 +56,7 @@ namespace ChatRoomClient.DomainLayer
             ServerUser mainServerUser = GetMainUserAsServerUser();
             var allInvitesForGuests = _objectCreator.CreateInvitesForAllGuestServerUsers(mainServerUser, chatRoomName, serverCommunicationInfo.SelectedGuestUsers);
             var chatRoom = _objectCreator.CreateChatRoom(mainServerUser, chatRoomName , allInvitesForGuests );
-            Payload payload = _objectCreator.CreatePayload(MessageActionType.AssistantCreateChatRoomAndSendInvites,mainServerUser.Username,mainServerUser.ServerUserID,chatRoom);
+            Payload payload = _objectCreator.CreatePayload(MessageActionType.ManagerCreateChatRoomAndSendInvites,mainServerUser.Username,mainServerUser.ServerUserID,chatRoom);
             _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 

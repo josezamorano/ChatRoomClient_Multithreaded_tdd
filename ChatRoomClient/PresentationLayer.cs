@@ -10,11 +10,11 @@ using System.Windows.Forms;
 namespace ChatRoomClient
 {
 
-    public delegate void ClientLogReportDelegate( string statusReport );
+    public delegate void ClientLogReportDelegate(string statusReport);
 
-    public delegate void ClientConnectionReportDelegate( bool isConnected );
+    public delegate void ClientConnectionReportDelegate(bool isConnected);
 
-    public delegate void UsernameStatusReportDelegate( MessageActionType messageActionType );
+    public delegate void UsernameStatusReportDelegate(MessageActionType messageActionType);
 
     public delegate void OtherServerUsersReportDelegate(List<ServerUser> otherActiveUsers);
     public partial class PresentationLayer : Form
@@ -32,7 +32,7 @@ namespace ChatRoomClient
         public PresentationLayer(IClientManager clientManager, IInputValidator inputValidator, IUserChatRoomAssistant userChatRoomAssistant)
         {
             InitializeComponent();
-            _otherActiveUsers= new List<ServerUser>();
+            _otherActiveUsers = new List<ServerUser>();
             _clientManager = clientManager;
             _inputValidator = inputValidator;
             _clientConnected = Enum.GetName(typeof(ClientStatus), ClientStatus.Connected);
@@ -44,9 +44,9 @@ namespace ChatRoomClient
         private void WinFormOnLoad_Event(object sender, EventArgs e)
         {
             txtClientStatus.Text = _clientDisconnected;
-            txtClientStatus.ForeColor= Color.Red;
+            txtClientStatus.ForeColor = Color.Red;
             txtClientStatus.BackColor = txtClientStatus.BackColor;
-            
+
             lblWarningUsername.Text = string.Empty;
             lblWarningIPAddress.Text = string.Empty;
             lblWarningPort.Text = string.Empty;
@@ -68,9 +68,9 @@ namespace ChatRoomClient
             lblWarningUsername.Text = string.Empty;
             var filteredText = string.Concat(txtUsername.Text.Where(char.IsLetterOrDigit));
             txtUsername.Text = filteredText;
-            
+
             txtUsernameChatRoom.Text = filteredText.Trim();
-            txtUsernameChatRoom.BackColor= txtUsernameChatRoom .BackColor;
+            txtUsernameChatRoom.BackColor = txtUsernameChatRoom.BackColor;
             txtUsernameChatRoom.ForeColor = Color.Blue;
 
         }
@@ -98,18 +98,18 @@ namespace ChatRoomClient
         {
             checkedListServerUsers.Enabled = (chkBoxAddGuests.Checked) ? true : false;
         }
-              
+
         private void checkedListServerUsers_ItemCheck(object sender, ItemCheckEventArgs e)
         {
             string item = checkedListServerUsers.Items[e.Index].ToString();
             if (e.NewValue == CheckState.Checked)
-            {               
+            {
                 listBoxAllGuests.Items.Add(item);
             }
             else
             {
                 listBoxAllGuests.Items.Remove(item);
-            }               
+            }
         }
 
 
@@ -127,7 +127,7 @@ namespace ChatRoomClient
         {
             ClientLogReportDelegate logReportCallback = new ClientLogReportDelegate(ClientLogReportCallback);
             ClientConnectionReportDelegate connectionReportCallback = new ClientConnectionReportDelegate(ClientConnectionReportCallback);
-            _clientManager.DisconnectFromServer(logReportCallback , connectionReportCallback);
+            _clientManager.DisconnectFromServer(logReportCallback, connectionReportCallback);
         }
 
         private void BtnUsernameRetry_ClickEvent(object sender, EventArgs e)
@@ -154,8 +154,9 @@ namespace ChatRoomClient
 
         private void ClientLogReportCallback(string report)
         {
-            Action action = () => {
-                txtClientLog .Text += report;
+            Action action = () =>
+            {
+                txtClientLog.Text += report;
                 txtClientLog.AppendText(Environment.NewLine);
                 txtClientLog.Refresh();
             };
@@ -165,7 +166,7 @@ namespace ChatRoomClient
         private void ClientConnectionReportCallback(bool clientIsConnected)
         {
             Action actionTxtClientStatus = () =>
-            {               
+            {
                 string clientStatus = (clientIsConnected) ? _clientConnected : _clientDisconnected;
                 txtClientStatus.Text = clientStatus;
                 txtClientStatus.ForeColor = (clientIsConnected) ? Color.Blue : Color.Red;
@@ -174,13 +175,13 @@ namespace ChatRoomClient
             };
             txtClientStatus.BeginInvoke(actionTxtClientStatus);
 
-            Action actionLblUsernameStatus = () => 
+            Action actionLblUsernameStatus = () =>
             {
                 lblUsernameStatus.Text = (clientIsConnected) ? lblUsernameStatus.Text : string.Empty;
             };
             lblUsernameStatus.BeginInvoke(actionLblUsernameStatus);
 
-            Action actionBtnConnect = () => 
+            Action actionBtnConnect = () =>
             {
                 btnConnect.Enabled = (clientIsConnected) ? false : true;
                 btnConnect.Refresh();
@@ -206,18 +207,18 @@ namespace ChatRoomClient
                 if (!clientIsConnected)
                 {
                     checkedListServerUsers.Items.Clear();
-                }                
+                }
             };
             checkedListServerUsers.BeginInvoke(actionCheckedList);
 
-            Action actionChkBoxAddGuest = () => 
+            Action actionChkBoxAddGuest = () =>
             {
                 chkBoxAddGuests.Enabled = (clientIsConnected) ? true : false;
             };
             chkBoxAddGuests.BeginInvoke(actionChkBoxAddGuest);
 
             Action actionBtnCreateChatRoom = () =>
-            { 
+            {
                 btnCreateChatRoomSendInvites.Enabled = (clientIsConnected) ? true : false;
             };
             btnCreateChatRoomSendInvites.BeginInvoke(actionBtnCreateChatRoom);
@@ -225,7 +226,7 @@ namespace ChatRoomClient
 
         private void UsernameActivationStatusCallback(MessageActionType messageActionType)
         {
-            if(messageActionType == MessageActionType.RetryUsernameTaken)
+            if (messageActionType == MessageActionType.RetryUsernameTaken)
             {
                 Action actionLblUsernameStatus = GetActionLblUsernameStatus("Username taken, please retry", Color.Red);
                 lblUsernameStatus.BeginInvoke(actionLblUsernameStatus);
@@ -253,7 +254,7 @@ namespace ChatRoomClient
             }
         }
 
-        private Action GetActionLblUsernameStatus(string text, Color color) 
+        private Action GetActionLblUsernameStatus(string text, Color color)
         {
             Action actionLblUsernameStatus = () =>
             {
@@ -278,11 +279,11 @@ namespace ChatRoomClient
 
         private void DisplayOtherActiveUsersCallback(List<ServerUser> otherActiveUsers)
         {
-            
+
             _otherActiveUsers = otherActiveUsers;
             if (otherActiveUsers == null) return;
-            string[] usernameOtherActiveUsers = otherActiveUsers.Select(a => a.Username).ToArray();           
-            Action actionCheckedList = ()=>
+            string[] usernameOtherActiveUsers = otherActiveUsers.Select(a => a.Username).ToArray();
+            Action actionCheckedList = () =>
             {
                 string[] testValues = { "userJoe", "UserTom", "UserPete" };
 
@@ -318,7 +319,7 @@ namespace ChatRoomClient
                 LogReportCallback = logReportCallback,
                 ConnectionReportCallback = connectionReportCallback,
                 UsernameStatusReportCallback = usernameStatusReportCallback,
-                OtherServerUsersReportCallback= otherServerUsersReportCallback
+                OtherServerUsersReportCallback = otherServerUsersReportCallback
             };
             return serverCommunicationInfo;
         }
@@ -332,8 +333,8 @@ namespace ChatRoomClient
             txtUsername.Text = txtUsername.Text.Trim();
             txtServerIPAddress.Text = txtServerIPAddress.Text.Trim();
             txtPort.Text = txtPort.Text.Trim();
-            
-            ClientInputs clientInputs = new ClientInputs() 
+
+            ClientInputs clientInputs = new ClientInputs()
             {
                 Username = txtUsername.Text,
                 IPAddress = txtServerIPAddress.Text,
@@ -346,12 +347,12 @@ namespace ChatRoomClient
                 lblWarningUsername.BackColor = lblWarningUsername.BackColor;
                 lblWarningUsername.ForeColor = Color.Red;
                 lblWarningUsername.Refresh();
-                
+
                 lblWarningIPAddress.Text = inputsReport.IPAddressReport;
                 lblWarningIPAddress.BackColor = lblWarningIPAddress.BackColor;
                 lblWarningIPAddress.ForeColor = Color.Red;
                 lblWarningIPAddress.Refresh();
-                
+
                 lblWarningPort.Text = inputsReport.PortReport;
                 lblWarningPort.BackColor = lblWarningPort.BackColor;
                 lblWarningPort.ForeColor = Color.Red;
@@ -365,7 +366,7 @@ namespace ChatRoomClient
             lblWarningChatRoomName.Text = string.Empty;
             lblWarningGuests.Text = string.Empty;
 
-            ClientInputs clientInputs = new ClientInputs() 
+            ClientInputs clientInputs = new ClientInputs()
             {
                 ChatRoomName = txtChatRoomName.Text.Trim(),
                 GuestSelectorStatus = chkBoxAddGuests.Checked,
@@ -380,8 +381,8 @@ namespace ChatRoomClient
                 lblWarningChatRoomName.Refresh();
 
                 lblWarningGuests.Text = report.GuestSelectorReport;
-                lblWarningGuests.BackColor= lblWarningGuests.BackColor;
-                lblWarningGuests.ForeColor= Color.Red;
+                lblWarningGuests.BackColor = lblWarningGuests.BackColor;
+                lblWarningGuests.ForeColor = Color.Red;
                 lblWarningGuests.Refresh();
             }
             return report.InputsAreValid;
@@ -391,11 +392,11 @@ namespace ChatRoomClient
         private List<ServerUser> GetAllSelectedServerUsers()
         {
             List<ServerUser> selectedUsers = new List<ServerUser>();
-            foreach(var item in listBoxAllGuests.Items)
+            foreach (var item in listBoxAllGuests.Items)
             {
                 string itemUsernameLower = item.ToString().ToLower();
-                var selectedUser = _otherActiveUsers.Where(a=>a.Username.ToLower() == itemUsernameLower).FirstOrDefault();
-                if(selectedUser != null)
+                var selectedUser = _otherActiveUsers.Where(a => a.Username.ToLower() == itemUsernameLower).FirstOrDefault();
+                if (selectedUser != null)
                 {
                     selectedUsers.Add(selectedUser);
                 }
@@ -406,6 +407,6 @@ namespace ChatRoomClient
 
         #endregion Private Methods
 
-       
+
     }
 }

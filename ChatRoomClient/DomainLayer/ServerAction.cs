@@ -123,6 +123,8 @@ namespace ChatRoomClient.DomainLayer
                     serverActionResolvedReport.AllActiveServerUsers = payload.ActiveServerUsers;                   
                     break;
 
+                case MessageActionType.ServerChatRoomCreated:
+                    break;
                
             }
             return serverActionResolvedReport;
