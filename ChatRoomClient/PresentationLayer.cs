@@ -513,6 +513,7 @@ namespace ChatRoomClient
                     var activeUsersInChatRoom = chatRooms[a].AllActiveUsersInChatRoom.Count.ToString();
                     var chatRoomIdentifier = chatRooms[a].ChatRoomIdentifierNameId;
                     string[] allActiveUsers = chatRooms[a].AllActiveUsersInChatRoom.Select(a => a.Username).ToArray();
+                    string conversationRecord = chatRooms[a].ConversationRecord;
                     string controlId = chatRoomIdentifier + "_" + a;
 
                     var tlpRow = new TableLayoutPanel();
@@ -556,6 +557,7 @@ namespace ChatRoomClient
                     chatRoomConversation.Dock = DockStyle.Fill;
                     chatRoomConversation.Enabled = false;
                     chatRoomConversation.Multiline = true;
+                    chatRoomConversation.Text = conversationRecord;
                     tlpRow.SetColumnSpan(chatRoomConversation, 3);
                     tlpRow.Controls.Add(chatRoomConversation, 0, 3);
 

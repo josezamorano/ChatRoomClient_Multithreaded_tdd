@@ -7,18 +7,7 @@ using ChatRoomClient.Utils.Interfaces;
 namespace ChatRoomClient.Services
 {
     public class ObjectCreator :IObjectCreator
-    {
-        public IUser CreateMainUser(ServerUser serverUserForActivation)
-        {
-            IUser activeUser = new User()
-            {
-                Username = serverUserForActivation.Username,
-                UserID = (Guid)serverUserForActivation.ServerUserID
-            };
-            return activeUser;
-        }
-
-
+    {       
         public Payload CreatePayload(MessageActionType messageActionType, string username)
         {
             Payload payload = new Payload()

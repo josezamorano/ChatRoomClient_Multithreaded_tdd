@@ -18,11 +18,13 @@ namespace ChatRoomClient.DomainLayer
         private string _currentUsername;
 
         IServerAction _serverAction;
+        IUser _mainUser;
         IUserChatRoomAssistant _userChatRoomAssistantInstance;
         IObjectCreator _objectCreator;
-        public ClientManager(IServerAction serverAction, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator)
+        public ClientManager(IServerAction serverAction, IUser mainUser, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator)
         {
             _serverAction = serverAction;
+            _mainUser = mainUser;
             _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
             _objectCreator = objectCreator;
         }
@@ -101,10 +103,11 @@ namespace ChatRoomClient.DomainLayer
 
                     case MessageActionType.UserActivated:
                         ServerUser? userForActivation = payload.ActiveServerUsers.Where(a => a.Username.ToLower() == _currentUsername.ToLower()).FirstOrDefault();
-
                         if (userForActivation != null)
                         {
-                            SetActiveUserInUserChatAssistant(_objectCreator.CreateMainUser(userForActivation));
+                            _mainUser.UserID = (Guid)userForActivation.ServerUserID;
+                            _mainUser.Username = userForActivation.Username;
+                            SetActiveUserInUserChatAssistant(_mainUser);
                             payload.ActiveServerUsers.Remove(userForActivation);
                         }
 
@@ -156,6 +159,7 @@ namespace ChatRoomClient.DomainLayer
             IUser currentActiveMainUser = _userChatRoomAssistantInstance.GetActiveMainUser();
             if (currentActiveMainUser == null)
             {
+                
                 _userChatRoomAssistantInstance.SetActiveMainUser(userForActivation);
             }
         }

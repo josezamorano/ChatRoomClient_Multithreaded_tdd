@@ -19,7 +19,7 @@ namespace ChatRoomClient.Utils.DependencyInjection
             builder.RegisterType<ServerAction>().As<IServerAction>().SingleInstance();
             builder.RegisterType<StreamProvider>().As<IStreamProvider>();
             builder.RegisterType<Transmitter>().As<ITransmitter>();
-            builder.RegisterType<User>().As<IUser>();
+            builder.RegisterType<User>().As<IUser>().SingleInstance();
             builder.RegisterType<UserChatRoomAssistant>().As<IUserChatRoomAssistant>().SingleInstance();
 
             return builder.Build();

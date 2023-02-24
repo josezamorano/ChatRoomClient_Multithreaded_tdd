@@ -5,9 +5,6 @@ namespace ChatRoomClient.Utils.Interfaces
 {
     public interface IObjectCreator
     {
-
-        IUser CreateMainUser(ServerUser serverUserForActivation);
-
         Payload CreatePayload(MessageActionType messageActionType, string username);
 
         Payload CreatePayload(MessageActionType messageActionType, string username, Guid? mainUserId, ChatRoom chatRoom);

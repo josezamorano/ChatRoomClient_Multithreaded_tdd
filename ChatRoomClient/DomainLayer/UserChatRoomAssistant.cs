@@ -6,6 +6,7 @@ namespace ChatRoomClient.DomainLayer
 {
     public class UserChatRoomAssistant : IUserChatRoomAssistant
     {
+        private const string CRLF = "\r\n";
         private IUser _ActiveMainUser;
         private List<ServerUser> _allActiveServerUsers;
         private UserChatRoomAssistant userChatRoomAssistant;
@@ -86,9 +87,9 @@ namespace ChatRoomClient.DomainLayer
         public void AddMessageToChatRoomConversation(Guid chatRoomId, string message)
         {
             ChatRoom targetChatRoom = _allActiveChatRooms.Where(a=>a.ChatRoomId == chatRoomId).FirstOrDefault();
-            if(targetChatRoom == null) 
+            if(targetChatRoom != null) 
             {
-                targetChatRoom.ConversationRecord += message;
+                targetChatRoom.ConversationRecord += CRLF + message;
                 _chatRoomUpdateCallback(_allActiveChatRooms);
             }
         }
