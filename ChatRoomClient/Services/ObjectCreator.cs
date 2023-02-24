@@ -3,6 +3,7 @@ using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
 
+
 namespace ChatRoomClient.Services
 {
     public class ObjectCreator :IObjectCreator
@@ -42,6 +43,19 @@ namespace ChatRoomClient.Services
             return payload;
         }
 
+        public Payload CreatePayload(MessageActionType messageActionType, ChatRoom chatRoom , string messageToChatRoom)
+        {
+
+            Payload payload = new Payload()
+            {
+                MessageActionType = messageActionType,
+                ChatRoomCreated = chatRoom,
+                MessageToChatRoom = messageToChatRoom
+            };
+            return payload;
+        }
+
+
         public ChatRoom CreateChatRoom(ServerUser chatRoomCreatorMainServerUser,string chatRoomName, List<Invite> allInvitesSentToGuestUsers)
         {
             List<ServerUser> allActiveUsersInChatRoom = new List<ServerUser>() { chatRoomCreatorMainServerUser };
@@ -56,6 +70,25 @@ namespace ChatRoomClient.Services
 
             };
 
+            return chatRoom;
+        }
+
+        public ChatRoom CreateChatRoom(string username, Guid userId, string chatRoomName, Guid chatRoomId)
+        {
+            string ChatRoomIdentifier = chatRoomName + "_" + chatRoomId;
+            ServerUser mainUser = new ServerUser()
+            {
+                ServerUserID = userId,
+                Username = username,
+            };
+            ChatRoom chatRoom = new ChatRoom()
+            {
+                Creator = mainUser,
+                ChatRoomId = chatRoomId,
+                ChatRoomName = chatRoomName,
+                ChatRoomIdentifierNameId = ChatRoomIdentifier,
+
+            };
             return chatRoom;
         }
 

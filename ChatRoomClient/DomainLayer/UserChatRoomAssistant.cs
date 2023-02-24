@@ -7,27 +7,38 @@ namespace ChatRoomClient.DomainLayer
     public class UserChatRoomAssistant : IUserChatRoomAssistant
     {
         private IUser _ActiveMainUser;
-        List<ServerUser> _allActiveServerUsers;
+        private List<ServerUser> _allActiveServerUsers;
+        private UserChatRoomAssistant userChatRoomAssistant;
 
-        private List<Invite> _allReceivedPendingChatRoomInvites;
+        private ChatRoomUpdateDelegate _chatRoomUpdateCallback;
         private List<ChatRoom> _allActiveChatRooms;
-
+        private List<Invite> _allReceivedPendingChatRoomInvites;
+        
         IObjectCreator _objectCreator;
         IServerAction _serverAction;
         public UserChatRoomAssistant(IObjectCreator objectCreator, IServerAction serverAction)
         {
             _objectCreator = objectCreator;
             _serverAction = serverAction;
+
+            _allActiveServerUsers = new List<ServerUser>();
+            _allActiveChatRooms = new List<ChatRoom>();
+            _allReceivedPendingChatRoomInvites = new List<Invite>(); 
         }
 
         public IUserChatRoomAssistant GetInstance()
         {
-            UserChatRoomAssistant userChatRoomAssistant = null;
+            
             if (userChatRoomAssistant == null)
             {
                 userChatRoomAssistant = new UserChatRoomAssistant(_objectCreator, _serverAction);
             }
             return userChatRoomAssistant;
+        }
+
+        public void SetChatRoomUpdateCallback(ChatRoomUpdateDelegate chatRoomUpdateCallback)
+        {
+            _chatRoomUpdateCallback = chatRoomUpdateCallback;
         }
 
         public void SetActiveMainUser(IUser user)
@@ -60,6 +71,33 @@ namespace ChatRoomClient.DomainLayer
             _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 
+
+        public void AddChatRoomToAllActiveChatRooms(ChatRoom chatRoom)
+        {
+            var existingChatRoom = _allActiveChatRooms.Where(x => x.ChatRoomId == chatRoom.ChatRoomId).FirstOrDefault();
+            if(existingChatRoom == null)
+            {
+                _allActiveChatRooms.Add(chatRoom);
+                _chatRoomUpdateCallback(_allActiveChatRooms);
+            }            
+        }
+
+
+        public void AddMessageToChatRoomConversation(Guid chatRoomId, string message)
+        {
+            ChatRoom targetChatRoom = _allActiveChatRooms.Where(a=>a.ChatRoomId == chatRoomId).FirstOrDefault();
+            if(targetChatRoom == null) 
+            {
+                targetChatRoom.ConversationRecord += message;
+                _chatRoomUpdateCallback(_allActiveChatRooms);
+            }
+        }
+
+
+        public List<ChatRoom> GetAllActiveChatRooms()
+        {
+            return _allActiveChatRooms;
+        }
 
         #region Private Methods
 

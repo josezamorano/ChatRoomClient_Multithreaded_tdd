@@ -1,4 +1,6 @@
-﻿namespace ChatRoomClient.Utils.Interfaces
+﻿using ChatRoomClient.DomainLayer.Models;
+
+namespace ChatRoomClient.Utils.Interfaces
 {
     public interface IUser
     {
@@ -11,7 +13,7 @@
 
         void RejectInvite();
 
-        void SendMessageToChatRoom();
+        void SendMessageToChatRoom(ServerCommunicationInfo serverCommunicationInfo);
 
         void LeaveChatRoom();
     }

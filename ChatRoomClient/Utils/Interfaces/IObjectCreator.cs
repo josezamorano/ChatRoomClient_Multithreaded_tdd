@@ -14,8 +14,11 @@ namespace ChatRoomClient.Utils.Interfaces
 
         ChatRoom CreateChatRoom(ServerUser chatRoomCreatorMainServerUser, string chatRoomName, List<Invite> allInvitesSentToGuestUsers);
 
-        List<Invite> CreateInvitesForAllGuestServerUsers(ServerUser chatRoomCreatorMainServerUser, string chatRoomName, List<ServerUser> allSelectedGuestUsers);
+        ChatRoom CreateChatRoom(string username, Guid userId, string chatRoomName, Guid chatRoomId);
 
+        Payload CreatePayload(MessageActionType messageActionType, ChatRoom chatRoom, string messageToChatRoom);
+
+        List<Invite> CreateInvitesForAllGuestServerUsers(ServerUser chatRoomCreatorMainServerUser, string chatRoomName, List<ServerUser> allSelectedGuestUsers);
 
     }
 }

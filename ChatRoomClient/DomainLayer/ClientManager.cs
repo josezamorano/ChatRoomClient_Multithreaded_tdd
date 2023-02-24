@@ -8,13 +8,14 @@ using ChatRoomClient.Utils.Enumerations;
 namespace ChatRoomClient.DomainLayer
 {
 
-    public delegate void ServerActionReportDelegate(ServerActionResolvedReport serverActionResolvedReport);
+    public delegate void ServerActionReportDelegate(Payload payload);
     internal class ClientManager : IClientManager
     {
         //Variables
         private IPAddress _serverIpAddress;
         private TcpClient _tcpClient;
         private bool _ClientIsActive = false;
+        private string _currentUsername;
 
         IServerAction _serverAction;
         IUserChatRoomAssistant _userChatRoomAssistantInstance;
@@ -70,35 +71,74 @@ namespace ChatRoomClient.DomainLayer
         }
 
 
-
         #region Private Methods
 
         private void ProcessCommunicationSendMessageToServer(MessageActionType messageActionType, ServerCommunicationInfo serverCommunicationInfo)
         {
-            Payload payload = _objectCreator.CreatePayload(messageActionType, serverCommunicationInfo.Username);
+            Payload payload = new Payload();
+            switch (messageActionType)
+            {
+                case MessageActionType.ClientConnectToServer:
+                case MessageActionType.CreateUser:
+                    payload = _objectCreator.CreatePayload(messageActionType, serverCommunicationInfo.Username);
+                    _currentUsername = serverCommunicationInfo.Username;
+                    break;
+                    
+            }
+           
             _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 
         private void ExecuteCommunicationReceiveMessageFromServer(ServerCommunicationInfo serverCommunicationInfo)
         {
-            void GetServerActionResolvedReport(ServerActionResolvedReport serverActionResolvedReport)
+            void GetPayloadFromServerAction(Payload payload)
             {
-                switch (serverActionResolvedReport.MessageActionType)
+                switch (payload.MessageActionType)
                 {
                     case MessageActionType.RetryUsernameTaken:
-                        serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
+                        serverCommunicationInfo.UsernameStatusReportCallback( payload.MessageActionType );
                         break;
 
                     case MessageActionType.UserActivated:
-                        SetActiveUserInUserChatAssistant(serverActionResolvedReport.MainUser);
-                        _userChatRoomAssistantInstance.SetAllActiveServerUsers(serverActionResolvedReport.AllActiveServerUsers);
-                        serverCommunicationInfo.UsernameStatusReportCallback(serverActionResolvedReport.MessageActionType);
-                        serverCommunicationInfo.OtherServerUsersReportCallback(serverActionResolvedReport.AllActiveServerUsers);
-                        break;
-                }                           
-            }
+                        ServerUser? userForActivation = payload.ActiveServerUsers.Where(a => a.Username.ToLower() == _currentUsername.ToLower()).FirstOrDefault();
 
-            ServerActionReportDelegate serverActionReportCallback = new ServerActionReportDelegate(GetServerActionResolvedReport);
+                        if (userForActivation != null)
+                        {
+                            SetActiveUserInUserChatAssistant(_objectCreator.CreateMainUser(userForActivation));
+                            payload.ActiveServerUsers.Remove(userForActivation);
+                        }
+
+                        _userChatRoomAssistantInstance.SetAllActiveServerUsers(payload.ActiveServerUsers);
+                        serverCommunicationInfo.UsernameStatusReportCallback(payload.MessageActionType);
+                        serverCommunicationInfo.OtherServerUsersReportCallback(payload.ActiveServerUsers);
+                        break;
+
+                    case MessageActionType.ServerChatRoomCreated:
+                        _userChatRoomAssistantInstance.AddChatRoomToAllActiveChatRooms( payload.ChatRoomCreated );
+                        serverCommunicationInfo.UsernameStatusReportCallback( payload.MessageActionType );
+                        serverCommunicationInfo.OtherServerUsersReportCallback( payload.ActiveServerUsers );
+                        break;
+
+                    case MessageActionType.ServerBroadcastMessageToChatRoom:
+
+                        List<ChatRoom> allActiveChatRooms = _userChatRoomAssistantInstance.GetAllActiveChatRooms();
+                        var targetChatRoom = allActiveChatRooms.Where(a=>a.ChatRoomId == payload.ChatRoomCreated.ChatRoomId).FirstOrDefault();
+                        if(targetChatRoom != null)
+                        {
+                            _userChatRoomAssistantInstance.AddMessageToChatRoomConversation(targetChatRoom.ChatRoomId, payload.MessageToChatRoom);
+                        }
+
+                        serverCommunicationInfo.OtherServerUsersReportCallback(payload.ActiveServerUsers);
+                        break;
+
+                    case MessageActionType.ServerInviteSent:
+                        break;
+                    
+                }
+            }
+           
+
+            ServerActionReportDelegate serverActionReportCallback = new ServerActionReportDelegate(GetPayloadFromServerAction);
 
             Thread ThreadServerCommunication = new Thread(() =>
             {

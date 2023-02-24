@@ -10,6 +10,9 @@
 
         public string ChatRoomName { get; set; }
 
+        public Guid ChatRoomId { get; set; }
+
+        public string MessageToChatRoom { get; set; }
         public List<ServerUser> SelectedGuestUsers { get; set; }
 
         public ClientLogReportDelegate LogReportCallback { get; set; }

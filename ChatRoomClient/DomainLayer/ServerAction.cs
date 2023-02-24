@@ -1,6 +1,5 @@
 ﻿using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Services;
-using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
 using System.Net.Sockets;
 
@@ -16,7 +15,6 @@ namespace ChatRoomClient.DomainLayer
         private bool _ClientIsActive;
         private TcpClient _activeTcpClient;
 
-
         ISerializationProvider _serializationProvider;
         ITransmitter _transmitter;
         IObjectCreator _objectCreator;
@@ -28,13 +26,10 @@ namespace ChatRoomClient.DomainLayer
             _objectCreator = objectCreator;
         }
 
-
         public void SetActiveTcpClient(TcpClient activeTcpClient)
         {
             _activeTcpClient = activeTcpClient;
         }
-
-
 
         public void ExecuteCommunicationSendMessageToServer(Payload payload, ServerCommunicationInfo serverCommunicationInfo)
         {
@@ -68,30 +63,19 @@ namespace ChatRoomClient.DomainLayer
             }
         }
 
-
         public void ResolveCommunicationFromServer(ServerCommunicationInfo serverCommunicationInfo, ServerActionReportDelegate serverActionReportCallback)
         {
             void ProcessMessageFromServerCallback(string messageReceived)
             {
-                ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
+                bool messageIsInvalid = VerifyIfMessageIsNullOrContainsException(messageReceived, serverCommunicationInfo);
+                if (messageIsInvalid) { return; }
 
-                if (string.IsNullOrEmpty(messageReceived) || messageReceived.Contains(Notification.Exception))
-                {
-                    serverCommunicationInfo.LogReportCallback(messageReceived);
-                    ExecuteDisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
-                }
-                else if (messageReceived.Contains(Notification.ServerMessage))
-                {
-                    serverActionResolvedReport.MessageFromServer = messageReceived;
-                }
-                else if (messageReceived.Contains(Notification.ServerPayload))
+                if (messageReceived.Contains(Notification.ServerPayload))
                 {
                     string serializedPayload = messageReceived.Replace(Notification.ServerPayload, "");
-                    Payload payloadFromServer = _serializationProvider.DeserializeObject<Payload>(serializedPayload);
-                    serverActionResolvedReport = ResolveActionRequestedByServer(payloadFromServer);
-                    serverActionResolvedReport.MessageFromServer = messageReceived;
+                    Payload payload = _serializationProvider.DeserializeObject<Payload>(serializedPayload);
+                    serverActionReportCallback(payload);
                 }
-                serverActionReportCallback(serverActionResolvedReport);
             }
 
             MessageFromServerDelegate messageFromServerCallback = new MessageFromServerDelegate(ProcessMessageFromServerCallback);
@@ -99,39 +83,17 @@ namespace ChatRoomClient.DomainLayer
         }
 
 
-        private ServerActionResolvedReport ResolveActionRequestedByServer(Payload payload )
-        {
-            ServerActionResolvedReport serverActionResolvedReport = new ServerActionResolvedReport();
-
-            switch (payload.MessageActionType)
-            {
-                case MessageActionType.RetryUsernameTaken:
-
-                    serverActionResolvedReport.MessageActionType = payload.MessageActionType;
-                    break;
-
-                case MessageActionType.UserActivated:
-                    ServerUser? userForActivation = payload.ActiveServerUsers.Where(a => a.Username.ToLower() == _currentUsername.ToLower()).FirstOrDefault();
-                   
-                    if (userForActivation != null) 
-                    {                        
-                        serverActionResolvedReport.MainUser = _objectCreator.CreateMainUser(userForActivation);
-                        payload.ActiveServerUsers.Remove(userForActivation);
-                    }                    
-
-                    serverActionResolvedReport.MessageActionType = payload.MessageActionType;
-                    serverActionResolvedReport.AllActiveServerUsers = payload.ActiveServerUsers;                   
-                    break;
-
-                case MessageActionType.ServerChatRoomCreated:
-                    break;
-               
-            }
-            return serverActionResolvedReport;
-        }
-
         #region Private Methods
-
+        private bool VerifyIfMessageIsNullOrContainsException(string message, ServerCommunicationInfo serverCommunicationInfo)
+        {
+            if (string.IsNullOrEmpty(message) || message.Contains(Notification.Exception))
+            {
+                serverCommunicationInfo.LogReportCallback(message);
+                ExecuteDisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                return true;
+            }
+            return false;
+        }             
 
         private string ResolveCommunicationToServer(Payload payload)
         {
@@ -140,8 +102,6 @@ namespace ChatRoomClient.DomainLayer
             string notificationMessage = _transmitter.SendMessageToServer(_activeTcpClient, serializedPayload);
             return notificationMessage;
         }
-
-
         
         #endregion Private Methods 
     }

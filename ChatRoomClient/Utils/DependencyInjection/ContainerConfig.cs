@@ -16,7 +16,7 @@ namespace ChatRoomClient.Utils.DependencyInjection
             builder.RegisterType<MessageFactory>().As<IMessageFactory>();
             builder.RegisterType<ObjectCreator>().As<IObjectCreator>();
             builder.RegisterType<SerializationProvider>().As<ISerializationProvider>();
-            builder.RegisterType<ServerAction>().As<IServerAction>();
+            builder.RegisterType<ServerAction>().As<IServerAction>().SingleInstance();
             builder.RegisterType<StreamProvider>().As<IStreamProvider>();
             builder.RegisterType<Transmitter>().As<ITransmitter>();
             builder.RegisterType<User>().As<IUser>();

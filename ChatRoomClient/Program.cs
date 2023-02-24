@@ -22,7 +22,8 @@ namespace ChatRoomClient
             IClientManager _clientManager = container.Resolve<IClientManager>();
             IInputValidator _inputValidator = container.Resolve<IInputValidator>();
             IUserChatRoomAssistant _userChatRoomAssistant = container.Resolve<IUserChatRoomAssistant>();
-            Application.Run(new PresentationLayer(_clientManager, _inputValidator , _userChatRoomAssistant));
+            IUser _user = container.Resolve<IUser>();
+            Application.Run(new PresentationLayer(_clientManager, _inputValidator , _userChatRoomAssistant , _user));
         }
     }
 }
