@@ -13,7 +13,7 @@ namespace ChatRoomClient.DomainLayer
 
         private ChatRoomUpdateDelegate _chatRoomUpdateCallback;
         private List<ChatRoom> _allActiveChatRooms;
-        private List<Invite> _allReceivedPendingChatRoomInvites;
+        private List<ControlInvite> _allReceivedPendingChatRoomInvites;
         
         IObjectCreator _objectCreator;
         IServerAction _serverAction;
@@ -24,7 +24,7 @@ namespace ChatRoomClient.DomainLayer
 
             _allActiveServerUsers = new List<ServerUser>();
             _allActiveChatRooms = new List<ChatRoom>();
-            _allReceivedPendingChatRoomInvites = new List<Invite>(); 
+            _allReceivedPendingChatRoomInvites = new List<ControlInvite>(); 
         }
 
         public IUserChatRoomAssistant GetInstance()
@@ -100,6 +100,21 @@ namespace ChatRoomClient.DomainLayer
             return _allActiveChatRooms;
         }
 
+
+        public void AddInviteToAllReceivedPendingChatRoomInvites(Invite invite)
+        {
+            ControlInvite duplicatedInvite = _allReceivedPendingChatRoomInvites.Where(a=>a.InviteObject.InviteId == invite.InviteId).FirstOrDefault();
+            if(duplicatedInvite == null)
+            {
+                ControlInvite controlInvite = new ControlInvite() 
+                {
+                    ControlActionType = ControlActionType.Create,
+                    InviteObject = invite
+                };
+                _allReceivedPendingChatRoomInvites.Add(controlInvite);
+            }
+        }
+
         #region Private Methods
 
         private ServerUser GetMainUserAsServerUser()
@@ -111,6 +126,8 @@ namespace ChatRoomClient.DomainLayer
             };
             return chatRoomCreatorServerUser;
         }
+
+       
 
         #endregion Private Methods
 

@@ -6,7 +6,7 @@ using ChatRoomClient.Utils.Interfaces;
 
 namespace ChatRoomClient.Services
 {
-    public class ObjectCreator :IObjectCreator
+    public class ObjectCreator : IObjectCreator
     {       
         public Payload CreatePayload(MessageActionType messageActionType, string username)
         {
@@ -43,6 +43,17 @@ namespace ChatRoomClient.Services
             };
             return payload;
         }
+        public Payload CreatePayload(MessageActionType messageActionType, ChatRoom chatRoom, Invite invite)
+        {
+
+            Payload payload = new Payload()
+            {
+                MessageActionType = messageActionType,
+                ChatRoomCreated = chatRoom,
+                InviteToGuestUser = invite
+            };
+            return payload;
+        }
 
 
         public ChatRoom CreateChatRoom(ServerUser chatRoomCreatorMainServerUser,string chatRoomName, List<Invite> allInvitesSentToGuestUsers)
@@ -56,7 +67,6 @@ namespace ChatRoomClient.Services
                 ConversationRecord = string.Empty,
                 AllActiveUsersInChatRoom = allActiveUsersInChatRoom,
                 AllInvitesSentToGuestUsers = allInvitesSentToGuestUsers
-
             };
 
             return chatRoom;

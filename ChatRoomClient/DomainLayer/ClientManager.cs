@@ -135,6 +135,8 @@ namespace ChatRoomClient.DomainLayer
                         break;
 
                     case MessageActionType.ServerInviteSent:
+
+                        //Add the invite to the list of invites and display it in the client view
                         break;
                     
                 }

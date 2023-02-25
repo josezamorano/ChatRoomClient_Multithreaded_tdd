@@ -12,7 +12,10 @@
 
         public Guid ChatRoomId { get; set; }
 
+        public Guid InviteId { get; set; }
+
         public string MessageToChatRoom { get; set; }
+
         public List<ServerUser> SelectedGuestUsers { get; set; }
 
         public ClientLogReportDelegate LogReportCallback { get; set; }

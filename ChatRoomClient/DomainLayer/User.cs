@@ -1,6 +1,7 @@
 ﻿using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
+using System.Windows.Forms;
 
 namespace ChatRoomClient.DomainLayer
 {
@@ -22,11 +23,16 @@ namespace ChatRoomClient.DomainLayer
         {
             _serverAction = serverAction;
             _objectCreator = objectCreator;
-
         }
 
-        public void AcceptInvite()
-        {
+        public void AcceptInvite(ServerCommunicationInfo serverCommunicationInfo)
+        {            
+            ServerUser serverUser = new ServerUser() { ServerUserID = UserID, Username = Username };
+            ChatRoom chatRoom = _objectCreator.CreateChatRoom(serverUser, string.Empty, new List<Invite>());
+            chatRoom.ChatRoomId = serverCommunicationInfo.ChatRoomId;
+            Invite invite = new Invite() { InviteId = serverCommunicationInfo.InviteId, InviteStatus=InviteStatus.Accepted};
+            Payload payload = _objectCreator.CreatePayload(MessageActionType.ServerUserAcceptInvite , chatRoom, invite);
+            _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
                
         public void RejectInvite()

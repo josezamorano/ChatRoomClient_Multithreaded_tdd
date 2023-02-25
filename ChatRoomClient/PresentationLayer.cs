@@ -17,13 +17,16 @@ namespace ChatRoomClient
     public delegate void OtherServerUsersReportDelegate(List<ServerUser> otherActiveUsers);
 
     public delegate void ChatRoomUpdateDelegate(List<ChatRoom> allActiveChatrooms);
+
+    public delegate void InviteDisplayDelegate(List<Invite> allPendingInvites);
     public partial class PresentationLayer : Form
     {
         private string _clientConnected;
         private string _clientDisconnected;
 
         private List<ServerUser> _otherActiveUsers;
-        private TableLayoutPanel _tlpCanvas;
+        private TableLayoutPanel _tlpChatRoomCanvas;
+        private TableLayoutPanel _tlpInviteCanvas;
 
 
         private IClientManager _clientManager;
@@ -34,7 +37,8 @@ namespace ChatRoomClient
         {
             InitializeComponent();
             _otherActiveUsers = new List<ServerUser>();
-            _tlpCanvas = new TableLayoutPanel();
+            _tlpChatRoomCanvas = new TableLayoutPanel();
+            _tlpInviteCanvas = new TableLayoutPanel();
             _clientManager = clientManager;
             _inputValidator = inputValidator;
             _clientConnected = Enum.GetName(typeof(ClientStatus), ClientStatus.Connected);
@@ -67,8 +71,16 @@ namespace ChatRoomClient
 
             ChatRoomUpdateDelegate chatRoomUpdateCallback = new ChatRoomUpdateDelegate(ChatRoomUpdate_ThreadCallback);
             _userChatRoomAssistantInstance.SetChatRoomUpdateCallback(chatRoomUpdateCallback);
+
+            //TESTING ONLY
             //var chatRooms = GetAllChatRoomsTest();
             //ChatRoomUpdate_ThreadCallback(chatRooms);
+
+            CreateInviteCanvasDynamicControl();
+            var allInvites = GetAllControlInvitesTEST();
+            InviteDisplay_ThreadCallback(allInvites);
+
+
         }
 
         private void txtUsername_TextChanged(object sender, EventArgs e)
@@ -488,25 +500,25 @@ namespace ChatRoomClient
 
         public void ResolveChatRoomDynamicControl(List<ChatRoom> chatRooms)
         {
-            Action actionUpdate = () =>
+            Action actionChatRoomUpdate = () =>
             {
-                if (_tlpCanvas.Controls.Count > 0)
+                if (_tlpChatRoomCanvas.Controls.Count > 0)
                 {
-                    _tlpCanvas.Controls.Clear();
+                    _tlpChatRoomCanvas.Controls.Clear();
                 }
                 int canvasWidth = 430;
-                _tlpCanvas.Dock = DockStyle.Fill;
-                _tlpCanvas.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
-                _tlpCanvas.ColumnCount = 1;
-                _tlpCanvas.RowCount = 1;
-                _tlpCanvas.BackColor = Color.White;
-                _tlpCanvas.SetRowSpan(_tlpCanvas, 3);
+                _tlpChatRoomCanvas.Dock = DockStyle.Fill;
+                _tlpChatRoomCanvas.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
+                _tlpChatRoomCanvas.ColumnCount = 1;
+                _tlpChatRoomCanvas.RowCount = 1;
+                _tlpChatRoomCanvas.BackColor = Color.White;
+                _tlpChatRoomCanvas.SetRowSpan(_tlpChatRoomCanvas, 3);
 
-                _tlpCanvas.HorizontalScroll.Maximum = 0;
-                _tlpCanvas.HorizontalScroll.Visible = false;
-                _tlpCanvas.AutoScroll = false;
-                _tlpCanvas.VerticalScroll.Visible = true;
-                _tlpCanvas.AutoScroll = true;
+                _tlpChatRoomCanvas.HorizontalScroll.Maximum = 0;
+                _tlpChatRoomCanvas.HorizontalScroll.Visible = false;
+                _tlpChatRoomCanvas.AutoScroll = false;
+                _tlpChatRoomCanvas.VerticalScroll.Visible = true;
+                _tlpChatRoomCanvas.AutoScroll = true;
 
                 for (var a = 0; a < chatRooms.Count; a++)
                 {
@@ -519,7 +531,6 @@ namespace ChatRoomClient
                     var tlpRow = new TableLayoutPanel();
                     tlpRow.Name = controlId;
                     tlpRow.Height = 300;
-                    //tlpRow.Dock = DockStyle.Fill;
                     tlpRow.Width = canvasWidth;
                     tlpRow.BackColor = Color.LightGray;
                     tlpRow.ColumnCount = 3;
@@ -573,16 +584,16 @@ namespace ChatRoomClient
                     buttonSendMessage.Dock = DockStyle.Fill;
                     buttonSendMessage.Click += ButtonSendMessage_Click;
 
-                    _tlpCanvas.SetColumnSpan(tlpRow, 3);
+                    _tlpChatRoomCanvas.SetColumnSpan(tlpRow, 3);
                     tlpRow.Controls.Add(buttonSendMessage, 2, 4);
 
 
-                    _tlpCanvas.Controls.Add(tlpRow, 0, a);
+                    _tlpChatRoomCanvas.Controls.Add(tlpRow, 0, a);
                 }
 
-                tlpBase.Controls.Add(_tlpCanvas, 2, 0);
+                tlpBase.Controls.Add(_tlpChatRoomCanvas, 2, 0);
             };
-            this.tlpBase.BeginInvoke(actionUpdate);
+            this.tlpBase.BeginInvoke(actionChatRoomUpdate);
         }
 
         private void ButtonSendMessage_Click(object? sender, EventArgs e)
@@ -590,7 +601,7 @@ namespace ChatRoomClient
             var buttonSendMessage = (Button)sender;
             var buttonSendMessageId = buttonSendMessage.Name;
             bool messageSent = false;
-            foreach (var control in this._tlpCanvas.Controls)
+            foreach (var control in this._tlpChatRoomCanvas.Controls)
             {
                 if (control is TableLayoutPanel)
                 {
@@ -633,11 +644,264 @@ namespace ChatRoomClient
 
         private void ButtonExitChatroom_Click(object sender, EventArgs e)
         {
+            //PENDING
             var button = (Button)sender;
             var info = button.Name;
             var value = "stop here";
 
         }
+
+
+
+        private void InviteDisplay_ThreadCallback(List<ControlInvite> allPendingInvites)
+        {
+            Thread threadInviteDisplayEvent = new Thread(() =>
+            {
+                if (allPendingInvites.Count > 0)
+                {
+                    List<ControlInvite> allInvitesPendingResolution = allPendingInvites.Where(a => a.ControlActionType != ControlActionType.Read).ToList();
+                    foreach (ControlInvite pendingInvite in allInvitesPendingResolution)
+                    {
+                        ResolveInviteDynamicControl(pendingInvite);
+                    }
+                }
+            });
+
+            threadInviteDisplayEvent.Name = "threadInviteDisplayEvent";
+            threadInviteDisplayEvent.IsBackground = true;
+            threadInviteDisplayEvent.Start();
+
+        }
+        private List<ControlInvite> GetAllControlInvitesTEST()
+        {
+            List<ControlInvite> allControlInvites = new List<ControlInvite>();
+
+            ControlInvite invite1 = new ControlInvite()
+            {
+                ControlActionType = ControlActionType.Create,
+                InviteObject = new Invite()
+                {
+                    InviteId = Guid.NewGuid(),
+                    ChatRoomCreator = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "USER Joe"
+                    },
+                    ChatRoomId = Guid.NewGuid(),
+                    ChatRoomName = "Test 1",
+                    GuestServerUser = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "Main User"
+                    },
+                    InviteStatus = InviteStatus.SentPendingResponse
+
+                }
+            };
+
+            ControlInvite invite2 = new ControlInvite()
+            {
+                ControlActionType = ControlActionType.Create,
+                InviteObject = new Invite()
+                {
+                    InviteId = Guid.NewGuid(),
+                    ChatRoomCreator = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "USER Joe"
+                    },
+                    ChatRoomId = Guid.NewGuid(),
+                    ChatRoomName = "Test 1",
+                    GuestServerUser = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "Main User"
+                    },
+                    InviteStatus = InviteStatus.SentPendingResponse
+
+                }
+            };
+
+            ControlInvite invite3 = new ControlInvite()
+            {
+                ControlActionType = ControlActionType.Create,
+                InviteObject = new Invite()
+                {
+                    InviteId = Guid.NewGuid(),
+                    ChatRoomCreator = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "USER Joe"
+                    },
+                    ChatRoomId = Guid.NewGuid(),
+                    ChatRoomName = "Test 1",
+                    GuestServerUser = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "Main User"
+                    },
+                    InviteStatus = InviteStatus.SentPendingResponse
+
+                }
+            };
+
+            ControlInvite invite4 = new ControlInvite()
+            {
+                ControlActionType = ControlActionType.Create,
+                InviteObject = new Invite()
+                {
+                    InviteId = Guid.NewGuid(),
+                    ChatRoomCreator = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "USER Joe"
+                    },
+                    ChatRoomId = Guid.NewGuid(),
+                    ChatRoomName = "Test 1",
+                    GuestServerUser = new ServerUser()
+                    {
+                        ServerUserID = Guid.NewGuid(),
+                        Username = "Main User"
+                    },
+                    InviteStatus = InviteStatus.SentPendingResponse
+
+                }
+            };
+            allControlInvites.Add(invite1);
+            allControlInvites.Add(invite2);
+            allControlInvites.Add(invite3);
+            //allControlInvites.Add(invite4);
+
+            return allControlInvites;
+        }
+
+        private void CreateInviteCanvasDynamicControl()
+        {
+            _tlpInviteCanvas.Dock = DockStyle.Fill;
+            _tlpInviteCanvas.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
+            _tlpInviteCanvas.ColumnCount = 1;
+            _tlpInviteCanvas.RowCount = 1;
+            _tlpInviteCanvas.BackColor = Color.White;
+            _tlpInviteCanvas.SetRowSpan(_tlpChatRoomCanvas, 3);
+            _tlpInviteCanvas.HorizontalScroll.Maximum = 0;
+            _tlpInviteCanvas.HorizontalScroll.Visible = false;
+            _tlpInviteCanvas.AutoScroll = false;
+            _tlpInviteCanvas.VerticalScroll.Visible = true;
+            _tlpInviteCanvas.AutoScroll = true;
+            tlpBase.Controls.Add(_tlpInviteCanvas, 1, 2);
+        }
+        private void ResolveInviteDynamicControl(ControlInvite controlInvite)
+        {
+            Action actionInviteDisplay = () =>
+            {
+                switch (controlInvite.ControlActionType)
+                {
+                    case ControlActionType.Create:
+
+                        string controlInviteId = controlInvite.InviteObject.InviteId.ToString();
+                        string chatRoomId = controlInvite.InviteObject.ChatRoomId.ToString();
+                        string chatRoomIdentifier = controlInvite.InviteObject.ChatRoomName + "_" + chatRoomId;
+                        string chatRoomCreator = controlInvite.InviteObject.ChatRoomCreator.Username;
+
+                        TableLayoutPanel tlpNewRow = new TableLayoutPanel();
+                        tlpNewRow.Name = controlInviteId;
+                        tlpNewRow.Height = 50;
+                        tlpNewRow.Width = (_tlpInviteCanvas.Width - 30);//415
+                        tlpNewRow.BackColor = Color.LightGray;
+                        tlpNewRow.ColumnCount = 4;
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 205F));
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70F));
+
+                        tlpNewRow.RowCount = 3;
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        //tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        //tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+
+                        tlpNewRow.Controls.Add(new Label() { Text = "Room:", Name = chatRoomId,  BorderStyle = BorderStyle.FixedSingle, Width = 74, TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+                        tlpNewRow.Controls.Add(new Label() { Text = chatRoomIdentifier, Name = chatRoomId, BorderStyle = BorderStyle.FixedSingle, Width = 205, TextAlign = ContentAlignment.MiddleLeft }, 1, 0);
+                        tlpNewRow.Controls.Add(new Label() { Text = "Creator:", BorderStyle = BorderStyle.FixedSingle, Width = 74, TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+                        tlpNewRow.Controls.Add(new Label() { Text = chatRoomCreator, BorderStyle = BorderStyle.FixedSingle, Width = 205, TextAlign = ContentAlignment.MiddleLeft }, 1, 1);
+
+                        Button buttonAcceptInvite = new Button();
+                        buttonAcceptInvite.Name = controlInviteId;
+                        buttonAcceptInvite.Text = "Accept";
+                        buttonAcceptInvite.Dock = DockStyle.Fill;
+                        buttonAcceptInvite.Click += ButtonAcceptInvite_ClickEvent;
+                        buttonAcceptInvite.Width = 50;
+                        tlpNewRow.SetRowSpan(buttonAcceptInvite, 2);
+                        tlpNewRow.Controls.Add(buttonAcceptInvite, 2, 0);
+
+                        Button buttonDeclineInvite = new Button();
+                        buttonDeclineInvite.Name = controlInviteId;
+                        buttonDeclineInvite.Text = "Reject";
+                        buttonDeclineInvite.Dock = DockStyle.Fill;
+                        buttonDeclineInvite.Click += ButtonDeclineInvite_ClickEvent;
+                        buttonDeclineInvite.Width = 50;
+                        tlpNewRow.SetRowSpan(buttonDeclineInvite, 2);
+                        tlpNewRow.Controls.Add(buttonDeclineInvite, 2, 0);
+
+
+                        int lastRowIndex = _tlpInviteCanvas.Controls.Count;
+
+                        _tlpInviteCanvas.Controls.Add(tlpNewRow, 0, lastRowIndex);
+                        break;
+                    case ControlActionType.Update:
+
+                        break;
+                    case ControlActionType.Delete:
+                        break;
+                }
+            };
+            this.tlpBase.BeginInvoke(actionInviteDisplay);
+        }
+        private void ButtonAcceptInvite_ClickEvent(object sender, EventArgs e)
+        {
+            Button btnAcceptInvite = (Button)sender;
+            string btnInviteId = btnAcceptInvite.Name;
+            bool actionExecuted = false;
+            foreach (var control in this._tlpInviteCanvas.Controls)
+            {
+                if (control is TableLayoutPanel)
+                {                    
+                    TableLayoutPanel tlp = (TableLayoutPanel)control;
+                    string tlpId = tlp.Name;
+                    if (tlpId == btnInviteId)
+                    {
+                        foreach (var itemControl in tlp.Controls)
+                        {
+                            if (itemControl is Label)
+                            {
+                                Label labelChatRoom = (Label)itemControl;
+                                if (labelChatRoom.Text == "Room:")
+                                {
+                                    string chatRoomId = labelChatRoom.Name;
+                                    ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
+                                    serverCommunicationInfo.InviteId = new Guid(btnInviteId);
+                                    serverCommunicationInfo.ChatRoomId = new Guid(chatRoomId);
+                                    serverCommunicationInfo.ChatRoomName = string.Empty;
+                                    _user.AcceptInvite(serverCommunicationInfo);
+                                    actionExecuted = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if(actionExecuted) 
+                {
+                    break;
+                }
+            }           
+        }
+
+        private void ButtonDeclineInvite_ClickEvent(object sender, EventArgs e)
+        {
+
+        }
+
         #endregion Dynamic Controls
     }
 }
