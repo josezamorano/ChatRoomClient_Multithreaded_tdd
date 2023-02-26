@@ -9,7 +9,7 @@ namespace ChatRoomClient.Utils.Interfaces
 
         void AcceptInvite(ServerCommunicationInfo serverCommunicationInfo);
 
-        void RejectInvite();
+        void RejectInvite(ServerCommunicationInfo serverCommunicationInfo);
 
         void SendMessageToChatRoom(ServerCommunicationInfo serverCommunicationInfo);
 

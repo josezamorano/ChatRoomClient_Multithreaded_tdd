@@ -1,4 +1,5 @@
 ﻿using ChatRoomClient.DomainLayer.Models;
+using ChatRoomClient.Utils.Enumerations;
 
 namespace ChatRoomClient.Utils.Interfaces
 {
@@ -8,6 +9,8 @@ namespace ChatRoomClient.Utils.Interfaces
 
         void SetChatRoomUpdateCallback(ChatRoomUpdateDelegate chatRoomUpdateCallback);
 
+        void SetInviteUpdateCallback(InviteUpdateDelegate inviteUpdateCallback);
+
         void SetActiveMainUser(IUser user);
         
         IUser GetActiveMainUser();
@@ -16,12 +19,22 @@ namespace ChatRoomClient.Utils.Interfaces
 
         List<ServerUser> GetAllActiveServerUsers();
 
+
+        //**Chat Room**
         void CreateChatRoomAndSendInvites(ServerCommunicationInfo serverCommunicationInfo);
 
-        void AddChatRoomToAllActiveChatRooms(ChatRoom chatRoom);
+        bool AddChatRoomToAllActiveChatRooms(ChatRoom chatRoom);
+
+        bool UpdateActiveUsersInChatRoom(Guid chatRoomId, List<ServerUser> updatedActiveUsersInChatRoom);
 
         List<ChatRoom> GetAllActiveChatRooms();
 
         void AddMessageToChatRoomConversation(Guid chatRoomId, string message);
+
+
+        //**Invites**
+        void AddInviteToAllReceivedPendingChatRoomInvites(Invite invite);
+
+        void RemoveInviteFromAllReceivedPendingChatRoomInvites(Guid inviteId);
     }
 }

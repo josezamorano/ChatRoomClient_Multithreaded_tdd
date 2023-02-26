@@ -1,5 +1,4 @@
-﻿using ChatRoomClient.DomainLayer;
-using ChatRoomClient.DomainLayer.Models;
+﻿using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
 
@@ -91,7 +90,7 @@ namespace ChatRoomClient.Services
             return chatRoom;
         }
 
-        public List<Invite> CreateInvitesForAllGuestServerUsers(ServerUser chatRoomCreatorMainServerUser , string chatRoomName, List<ServerUser> allSelectedGuestUsers)
+        public List<Invite> CreateAllInvitesForAllGuestServerUsers(ServerUser chatRoomCreatorMainServerUser , string chatRoomName, List<ServerUser> allSelectedGuestUsers)
         {
             List<Invite> allInvitesForAllGuests = new List<Invite>();
             foreach (ServerUser serverUser in allSelectedGuestUsers)

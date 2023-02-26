@@ -1,9 +1,11 @@
 using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Services.Models;
 using ChatRoomClient.Utils.Enumerations;
+using ChatRoomClient.Utils.Extensions;
 using ChatRoomClient.Utils.Interfaces;
 using System.Data;
-using System.Windows.Forms;
+
+
 
 namespace ChatRoomClient
 {
@@ -18,7 +20,7 @@ namespace ChatRoomClient
 
     public delegate void ChatRoomUpdateDelegate(List<ChatRoom> allActiveChatrooms);
 
-    public delegate void InviteDisplayDelegate(List<Invite> allPendingInvites);
+    public delegate void InviteUpdateDelegate(List<ControlInvite> allPendingInvites);
     public partial class PresentationLayer : Form
     {
         private string _clientConnected;
@@ -77,8 +79,13 @@ namespace ChatRoomClient
             //ChatRoomUpdate_ThreadCallback(chatRooms);
 
             CreateInviteCanvasDynamicControl();
-            var allInvites = GetAllControlInvitesTEST();
-            InviteDisplay_ThreadCallback(allInvites);
+
+            InviteUpdateDelegate inviteUpdateCallback = new InviteUpdateDelegate(InviteDisplay_ThreadCallback);
+            _userChatRoomAssistantInstance.SetInviteUpdateCallback(inviteUpdateCallback);
+
+            //TESTING ONLY
+            //var allInvites = GetAllControlInvitesTEST();
+            //InviteDisplay_ThreadCallback(allInvites);
 
 
         }
@@ -315,10 +322,10 @@ namespace ChatRoomClient
             string[] usernameOtherActiveUsers = otherActiveUsers.Select(a => a.Username).ToArray();
             Action actionCheckedList = () =>
             {
-                string[] testValues = { "userJoe", "UserTom", "UserPete" };
+                //string[] testValues = { "userJoe", "UserTom", "UserPete" };
 
                 checkedListServerUsers.Items.Clear();
-                checkedListServerUsers.Items.AddRange(testValues);
+                //checkedListServerUsers.Items.AddRange(testValues);
                 checkedListServerUsers.Items.AddRange(usernameOtherActiveUsers);
                 checkedListServerUsers.Enabled = false;
                 checkedListServerUsers.Refresh();
@@ -471,7 +478,7 @@ namespace ChatRoomClient
                 ChatRoomIdentifierNameId = "abc-112",
                 ChatRoomStatus = ChatRoomStatus.OpenActive,
                 AllActiveUsersInChatRoom = new List<ServerUser> { new ServerUser() { Username = "abc1" }, new ServerUser() { Username = "mno" } },
-                AllInvitesSentToGuestUsers = new List<Invite> { new Invite() { GuestServerUser = new ServerUser() { Username = "Mark" }, InviteStatus = InviteStatus.SentPendingResponse } }
+                AllInvitesSentToGuestUsers = new List<Invite> { new Invite() { GuestServerUser = new ServerUser() { Username = "Mark" }, InviteStatus = InviteStatus.SentAndPendingResponse } }
 
             };
             ChatRoom chatRoom3 = new ChatRoom()
@@ -479,7 +486,7 @@ namespace ChatRoomClient
                 ChatRoomIdentifierNameId = "abc-113",
                 ChatRoomStatus = ChatRoomStatus.OpenActive,
                 AllActiveUsersInChatRoom = new List<ServerUser> { new ServerUser() { Username = "abc2" }, new ServerUser() { Username = "mno" } },
-                AllInvitesSentToGuestUsers = new List<Invite> { new Invite() { GuestServerUser = new ServerUser() { Username = "Pam" }, InviteStatus = InviteStatus.SentPendingResponse }, }
+                AllInvitesSentToGuestUsers = new List<Invite> { new Invite() { GuestServerUser = new ServerUser() { Username = "Pam" }, InviteStatus = InviteStatus.SentAndPendingResponse }, }
 
             };
             ChatRoom chatRoom4 = new ChatRoom()
@@ -487,7 +494,7 @@ namespace ChatRoomClient
                 ChatRoomIdentifierNameId = "abc-114",
                 ChatRoomStatus = ChatRoomStatus.OpenActive,
                 AllActiveUsersInChatRoom = new List<ServerUser> { new ServerUser() { Username = "abc3" }, new ServerUser() { Username = "mno" } },
-                AllInvitesSentToGuestUsers = new List<Invite> { new Invite() { GuestServerUser = new ServerUser() { Username = "Jack" }, InviteStatus = InviteStatus.SentPendingResponse }, }
+                AllInvitesSentToGuestUsers = new List<Invite> { new Invite() { GuestServerUser = new ServerUser() { Username = "Jack" }, InviteStatus = InviteStatus.SentAndPendingResponse }, }
 
             };
             allChatRooms.Add(chatRoom1);
@@ -664,6 +671,11 @@ namespace ChatRoomClient
                     {
                         ResolveInviteDynamicControl(pendingInvite);
                     }
+
+                    List<ControlInvite> allInvitesForDeletion = allPendingInvites.Where(a => a.ControlActionType == ControlActionType.Delete).ToList();
+
+                    allPendingInvites.RemoveAllExtension(allInvitesForDeletion);
+
                 }
             });
 
@@ -694,7 +706,7 @@ namespace ChatRoomClient
                         ServerUserID = Guid.NewGuid(),
                         Username = "Main User"
                     },
-                    InviteStatus = InviteStatus.SentPendingResponse
+                    InviteStatus = InviteStatus.SentAndPendingResponse
 
                 }
             };
@@ -717,7 +729,7 @@ namespace ChatRoomClient
                         ServerUserID = Guid.NewGuid(),
                         Username = "Main User"
                     },
-                    InviteStatus = InviteStatus.SentPendingResponse
+                    InviteStatus = InviteStatus.SentAndPendingResponse
 
                 }
             };
@@ -740,7 +752,7 @@ namespace ChatRoomClient
                         ServerUserID = Guid.NewGuid(),
                         Username = "Main User"
                     },
-                    InviteStatus = InviteStatus.SentPendingResponse
+                    InviteStatus = InviteStatus.SentAndPendingResponse
 
                 }
             };
@@ -763,14 +775,14 @@ namespace ChatRoomClient
                         ServerUserID = Guid.NewGuid(),
                         Username = "Main User"
                     },
-                    InviteStatus = InviteStatus.SentPendingResponse
+                    InviteStatus = InviteStatus.SentAndPendingResponse
 
                 }
             };
             allControlInvites.Add(invite1);
             allControlInvites.Add(invite2);
             allControlInvites.Add(invite3);
-            //allControlInvites.Add(invite4);
+            allControlInvites.Add(invite4);
 
             return allControlInvites;
         }
@@ -786,7 +798,7 @@ namespace ChatRoomClient
             _tlpInviteCanvas.HorizontalScroll.Maximum = 0;
             _tlpInviteCanvas.HorizontalScroll.Visible = false;
             _tlpInviteCanvas.AutoScroll = false;
-            _tlpInviteCanvas.VerticalScroll.Visible = true;
+            _tlpInviteCanvas.VerticalScroll.Visible = false;
             _tlpInviteCanvas.AutoScroll = true;
             tlpBase.Controls.Add(_tlpInviteCanvas, 1, 2);
         }
@@ -817,10 +829,8 @@ namespace ChatRoomClient
                         tlpNewRow.RowCount = 3;
                         tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
                         tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-                        //tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-                        //tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
 
-                        tlpNewRow.Controls.Add(new Label() { Text = "Room:", Name = chatRoomId,  BorderStyle = BorderStyle.FixedSingle, Width = 74, TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+                        tlpNewRow.Controls.Add(new Label() { Text = "Room:", Name = chatRoomId, BorderStyle = BorderStyle.FixedSingle, Width = 74, TextAlign = ContentAlignment.MiddleRight }, 0, 0);
                         tlpNewRow.Controls.Add(new Label() { Text = chatRoomIdentifier, Name = chatRoomId, BorderStyle = BorderStyle.FixedSingle, Width = 205, TextAlign = ContentAlignment.MiddleLeft }, 1, 0);
                         tlpNewRow.Controls.Add(new Label() { Text = "Creator:", BorderStyle = BorderStyle.FixedSingle, Width = 74, TextAlign = ContentAlignment.MiddleRight }, 0, 1);
                         tlpNewRow.Controls.Add(new Label() { Text = chatRoomCreator, BorderStyle = BorderStyle.FixedSingle, Width = 205, TextAlign = ContentAlignment.MiddleLeft }, 1, 1);
@@ -838,7 +848,7 @@ namespace ChatRoomClient
                         buttonDeclineInvite.Name = controlInviteId;
                         buttonDeclineInvite.Text = "Reject";
                         buttonDeclineInvite.Dock = DockStyle.Fill;
-                        buttonDeclineInvite.Click += ButtonDeclineInvite_ClickEvent;
+                        buttonDeclineInvite.Click += ButtonRejectInvite_ClickEvent;
                         buttonDeclineInvite.Width = 50;
                         tlpNewRow.SetRowSpan(buttonDeclineInvite, 2);
                         tlpNewRow.Controls.Add(buttonDeclineInvite, 2, 0);
@@ -847,11 +857,35 @@ namespace ChatRoomClient
                         int lastRowIndex = _tlpInviteCanvas.Controls.Count;
 
                         _tlpInviteCanvas.Controls.Add(tlpNewRow, 0, lastRowIndex);
+
+                        controlInvite.ControlActionType = ControlActionType.Read;
+
                         break;
                     case ControlActionType.Update:
 
                         break;
                     case ControlActionType.Delete:
+                        string controlInviteIdForDeletion = controlInvite.InviteObject.InviteId.ToString();
+                        TableLayoutPanel tlpControlForRemoval = null;
+
+                        foreach (var control in this._tlpInviteCanvas.Controls)
+                        {
+                            if (control is TableLayoutPanel)
+                            {
+                                TableLayoutPanel tlpControl = (TableLayoutPanel)control;
+                                string tlpControlId = tlpControl.Name;
+                                if (tlpControlId == controlInviteIdForDeletion)
+                                {
+                                    tlpControlForRemoval = tlpControl;
+                                    break;
+                                }
+                            }
+                        }
+                        if (tlpControlForRemoval != null)
+                        {
+                            this._tlpInviteCanvas.Controls.Remove(tlpControlForRemoval);
+                        }
+
                         break;
                 }
             };
@@ -865,7 +899,7 @@ namespace ChatRoomClient
             foreach (var control in this._tlpInviteCanvas.Controls)
             {
                 if (control is TableLayoutPanel)
-                {                    
+                {
                     TableLayoutPanel tlp = (TableLayoutPanel)control;
                     string tlpId = tlp.Name;
                     if (tlpId == btnInviteId)
@@ -890,16 +924,54 @@ namespace ChatRoomClient
                         }
                     }
                 }
-                if(actionExecuted) 
+                if (actionExecuted)
                 {
                     break;
                 }
-            }           
+            }
         }
 
-        private void ButtonDeclineInvite_ClickEvent(object sender, EventArgs e)
+        private void ButtonRejectInvite_ClickEvent(object sender, EventArgs e)
         {
+            Button btnRejectInvite = (Button)sender;
+            ServerCommunicationInfo serverCommunicationInfo = GetInviteInfoFromControls(btnRejectInvite);
+            if (serverCommunicationInfo == null) { return; }
+            _user.RejectInvite(serverCommunicationInfo);
 
+        }
+
+
+        private ServerCommunicationInfo GetInviteInfoFromControls(Button buttonClicked)
+        {
+            string btnClickedId = buttonClicked.Name;
+            foreach (var control in this._tlpInviteCanvas.Controls)
+            {
+                if (control is TableLayoutPanel)
+                {
+                    TableLayoutPanel tlp = (TableLayoutPanel)control;
+                    string tlpId = tlp.Name;
+                    if (tlpId == btnClickedId)
+                    {
+                        foreach (var itemControl in tlp.Controls)
+                        {
+                            if (itemControl is Label)
+                            {
+                                Label labelChatRoom = (Label)itemControl;
+                                if (labelChatRoom.Text == "Room:")
+                                {
+                                    string chatRoomId = labelChatRoom.Name;
+                                    ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
+                                    serverCommunicationInfo.InviteId = new Guid(btnClickedId);
+                                    serverCommunicationInfo.ChatRoomId = new Guid(chatRoomId);
+                                    serverCommunicationInfo.ChatRoomName = string.Empty;
+                                    return serverCommunicationInfo;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         #endregion Dynamic Controls

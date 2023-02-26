@@ -123,7 +123,6 @@ namespace ChatRoomClient.DomainLayer
                         break;
 
                     case MessageActionType.ServerBroadcastMessageToChatRoom:
-
                         List<ChatRoom> allActiveChatRooms = _userChatRoomAssistantInstance.GetAllActiveChatRooms();
                         var targetChatRoom = allActiveChatRooms.Where(a=>a.ChatRoomId == payload.ChatRoomCreated.ChatRoomId).FirstOrDefault();
                         if(targetChatRoom != null)
@@ -135,8 +134,30 @@ namespace ChatRoomClient.DomainLayer
                         break;
 
                     case MessageActionType.ServerInviteSent:
-
                         //Add the invite to the list of invites and display it in the client view
+                        _userChatRoomAssistantInstance.AddInviteToAllReceivedPendingChatRoomInvites(payload.InviteToGuestUser);
+                        break;
+
+                    case MessageActionType.ServerUserAcceptInvite:
+
+                        Guid chatRoomId = payload.ChatRoomCreated.ChatRoomId;
+                        ChatRoom chatRoomUpdated = payload.ChatRoomCreated;
+                        Invite inviteReceived = payload.InviteToGuestUser;
+                        ChatRoom chatRoomForUpdate = _userChatRoomAssistantInstance.GetAllActiveChatRooms().Where(a=>a.ChatRoomId == chatRoomId).FirstOrDefault();
+                        if(chatRoomForUpdate == null)
+                        {
+                            _userChatRoomAssistantInstance.AddChatRoomToAllActiveChatRooms(chatRoomUpdated);                          
+                        }
+                        else
+                        {
+                            _userChatRoomAssistantInstance.UpdateActiveUsersInChatRoom(chatRoomId, chatRoomUpdated.AllActiveUsersInChatRoom);
+                        }
+
+                        if(inviteReceived != null)
+                        {
+                            _userChatRoomAssistantInstance.RemoveInviteFromAllReceivedPendingChatRoomInvites(inviteReceived.InviteId);
+                        }
+
                         break;
                     
                 }

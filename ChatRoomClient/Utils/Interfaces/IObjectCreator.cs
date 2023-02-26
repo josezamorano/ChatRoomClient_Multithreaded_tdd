@@ -19,7 +19,7 @@ namespace ChatRoomClient.Utils.Interfaces
 
         
 
-        List<Invite> CreateInvitesForAllGuestServerUsers(ServerUser chatRoomCreatorMainServerUser, string chatRoomName, List<ServerUser> allSelectedGuestUsers);
+        List<Invite> CreateAllInvitesForAllGuestServerUsers(ServerUser chatRoomCreatorMainServerUser, string chatRoomName, List<ServerUser> allSelectedGuestUsers);
 
     }
 }

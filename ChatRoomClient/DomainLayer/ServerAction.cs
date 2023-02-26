@@ -90,8 +90,10 @@ namespace ChatRoomClient.DomainLayer
             {
                 serverCommunicationInfo.LogReportCallback(message);
                 ExecuteDisconnectFromServer(serverCommunicationInfo.LogReportCallback, serverCommunicationInfo.ConnectionReportCallback);
+                
                 return true;
             }
+
             return false;
         }             
 

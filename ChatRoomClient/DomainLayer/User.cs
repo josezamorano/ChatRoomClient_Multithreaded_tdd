@@ -1,7 +1,7 @@
 ﻿using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Utils.Enumerations;
 using ChatRoomClient.Utils.Interfaces;
-using System.Windows.Forms;
+
 
 namespace ChatRoomClient.DomainLayer
 {
@@ -27,20 +27,15 @@ namespace ChatRoomClient.DomainLayer
 
         public void AcceptInvite(ServerCommunicationInfo serverCommunicationInfo)
         {            
-            ServerUser serverUser = new ServerUser() { ServerUserID = UserID, Username = Username };
-            ChatRoom chatRoom = _objectCreator.CreateChatRoom(serverUser, string.Empty, new List<Invite>());
-            chatRoom.ChatRoomId = serverCommunicationInfo.ChatRoomId;
-            Invite invite = new Invite() { InviteId = serverCommunicationInfo.InviteId, InviteStatus=InviteStatus.Accepted};
-            Payload payload = _objectCreator.CreatePayload(MessageActionType.ServerUserAcceptInvite , chatRoom, invite);
-            _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
+            ResolveInvite(MessageActionType.ServerUserAcceptInvite, serverCommunicationInfo);
         }
                
-        public void RejectInvite()
+        public void RejectInvite(ServerCommunicationInfo serverCommunicationInfo)
         {
-            throw new NotImplementedException();
+            ResolveInvite(MessageActionType.ServerUserRejectInvite, serverCommunicationInfo);
         }
 
-
+      
         
         public void SendMessageToChatRoom(ServerCommunicationInfo serverCommunicationInfo)
         {   
@@ -54,6 +49,25 @@ namespace ChatRoomClient.DomainLayer
         {
             throw new NotImplementedException();
         }
+
+        #region Private Methods
+        public void ResolveInvite(MessageActionType messageActionType, ServerCommunicationInfo serverCommunicationInfo)
+        {
+            ServerUser guestServerUser = new ServerUser() { ServerUserID = UserID, Username = Username };
+            ChatRoom chatRoom = new ChatRoom();
+            chatRoom.ChatRoomId = serverCommunicationInfo.ChatRoomId;
+            Invite invite = new Invite()
+            {
+                InviteId = serverCommunicationInfo.InviteId,
+                InviteStatus = InviteStatus.Rejected,
+                GuestServerUser = guestServerUser
+            };
+            Payload payload = _objectCreator.CreatePayload(messageActionType, chatRoom, invite);
+            payload.UserId = UserID;
+            _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
+        }
+
+        #endregion Private Methods
 
     }
 }
