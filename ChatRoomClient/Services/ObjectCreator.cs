@@ -12,15 +12,24 @@ namespace ChatRoomClient.Services
             Payload payload = new Payload()
             {
                 MessageActionType = messageActionType,
-                ClientUsername = username
+                ClientUsername = username                
             };
             return payload;
         }
 
+        public Payload CreatePayload(MessageActionType messageActionType, string username, Guid? mainUserId)
+        {
+            Payload payload = new Payload()
+            {
+                MessageActionType = messageActionType,
+                ClientUsername = username,
+                UserId = mainUserId,
+            };
+            return payload;
+        }
 
         public Payload CreatePayload(MessageActionType messageActionType, string username, Guid? mainUserId, ChatRoom chatRoom)
         {
-
             Payload payload = new Payload()
             {
                 MessageActionType = messageActionType,

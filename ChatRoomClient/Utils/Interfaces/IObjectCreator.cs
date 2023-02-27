@@ -7,6 +7,8 @@ namespace ChatRoomClient.Utils.Interfaces
     {
         Payload CreatePayload(MessageActionType messageActionType, string username);
 
+        Payload CreatePayload(MessageActionType messageActionType, string username, Guid? mainUserId);
+
         Payload CreatePayload(MessageActionType messageActionType, string username, Guid? mainUserId, ChatRoom chatRoom);
 
         Payload CreatePayload(MessageActionType messageActionType, ChatRoom chatRoom, string messageToChatRoom);

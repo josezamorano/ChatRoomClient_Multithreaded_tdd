@@ -33,9 +33,7 @@ namespace ChatRoomClient.DomainLayer
         public void RejectInvite(ServerCommunicationInfo serverCommunicationInfo)
         {
             ResolveInvite(MessageActionType.ServerUserRejectInvite, serverCommunicationInfo);
-        }
-
-      
+        }             
         
         public void SendMessageToChatRoom(ServerCommunicationInfo serverCommunicationInfo)
         {   
@@ -45,9 +43,12 @@ namespace ChatRoomClient.DomainLayer
             _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 
-        public void LeaveChatRoom()
+        public void ExitChatRoom(ServerCommunicationInfo serverCommunicationInfo)
         {
-            throw new NotImplementedException();
+            ChatRoom chatRoom = _objectCreator.CreateChatRoom(Username, UserID, serverCommunicationInfo.ChatRoomName, serverCommunicationInfo.ChatRoomId);
+
+            Payload payload = _objectCreator.CreatePayload(MessageActionType.ClientExitChatRoom , Username, UserID, chatRoom);
+            _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 
         #region Private Methods

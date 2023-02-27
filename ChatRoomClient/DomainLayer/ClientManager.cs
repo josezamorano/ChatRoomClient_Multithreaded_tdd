@@ -4,6 +4,7 @@ using System.Net;
 using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Services;
 using ChatRoomClient.Utils.Enumerations;
+using Microsoft.VisualBasic.Logging;
 
 namespace ChatRoomClient.DomainLayer
 {
@@ -67,9 +68,9 @@ namespace ChatRoomClient.DomainLayer
             ProcessCommunicationSendMessageToServer(MessageActionType.CreateUser, serverCommunicationInfo);
         }
 
-        public void DisconnectFromServer(ClientLogReportDelegate logReportCallback, ClientConnectionReportDelegate connectionReportCallback)
+        public void DisconnectFromServer(ServerCommunicationInfo serverCommunicationInfo)
         {
-            _serverAction.ExecuteDisconnectFromServer(logReportCallback, connectionReportCallback);
+            ProcessCommunicationSendMessageToServer(MessageActionType.ClientDisconnect, serverCommunicationInfo);
         }
 
 
@@ -84,6 +85,10 @@ namespace ChatRoomClient.DomainLayer
                 case MessageActionType.CreateUser:
                     payload = _objectCreator.CreatePayload(messageActionType, serverCommunicationInfo.Username);
                     _currentUsername = serverCommunicationInfo.Username;
+                    break;
+
+                case MessageActionType.ClientDisconnect:
+                    payload = _objectCreator.CreatePayload(messageActionType, _mainUser.Username, _mainUser.UserID);
                     break;
                     
             }
@@ -108,18 +113,31 @@ namespace ChatRoomClient.DomainLayer
                             _mainUser.UserID = (Guid)userForActivation.ServerUserID;
                             _mainUser.Username = userForActivation.Username;
                             SetActiveUserInUserChatAssistant(_mainUser);
-                            payload.ActiveServerUsers.Remove(userForActivation);
                         }
 
-                        _userChatRoomAssistantInstance.SetAllActiveServerUsers(payload.ActiveServerUsers);
                         serverCommunicationInfo.UsernameStatusReportCallback(payload.MessageActionType);
-                        serverCommunicationInfo.OtherServerUsersReportCallback(payload.ActiveServerUsers);
+                        _userChatRoomAssistantInstance.UpdateAllActiveServerUsers(payload.ActiveServerUsers);
+                        serverCommunicationInfo.LogReportCallback("User Activate");
+                        break;
+
+                    case MessageActionType.ServerClientDisconnectAccepted:
+                        _userChatRoomAssistantInstance.RemoveAllActiveServerUsers();
+                        _userChatRoomAssistantInstance.RemoveAllChatRooms();
+                        _userChatRoomAssistantInstance.RemoveAllInvites();
+
+                        _serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
+                        break;
+
+                    case MessageActionType.ServerUserIsDisconnected:
+
+                        //TO DO
                         break;
 
                     case MessageActionType.ServerChatRoomCreated:
                         _userChatRoomAssistantInstance.AddChatRoomToAllActiveChatRooms( payload.ChatRoomCreated );
                         serverCommunicationInfo.UsernameStatusReportCallback( payload.MessageActionType );
-                        serverCommunicationInfo.OtherServerUsersReportCallback( payload.ActiveServerUsers );
+                        _userChatRoomAssistantInstance.UpdateAllActiveServerUsers( payload.ActiveServerUsers );
+                        serverCommunicationInfo.LogReportCallback($"Chat Room {payload.ChatRoomCreated.ChatRoomName} created");
                         break;
 
                     case MessageActionType.ServerBroadcastMessageToChatRoom:
@@ -130,12 +148,15 @@ namespace ChatRoomClient.DomainLayer
                             _userChatRoomAssistantInstance.AddMessageToChatRoomConversation(targetChatRoom.ChatRoomId, payload.MessageToChatRoom);
                         }
 
-                        serverCommunicationInfo.OtherServerUsersReportCallback(payload.ActiveServerUsers);
+                        _userChatRoomAssistantInstance.UpdateAllActiveServerUsers(payload.ActiveServerUsers);
+
+                        serverCommunicationInfo.LogReportCallback($"Main User in Chat Room: {payload.ChatRoomCreated.ChatRoomName} Sent Message:{payload.MessageToChatRoom}");
                         break;
 
                     case MessageActionType.ServerInviteSent:
                         //Add the invite to the list of invites and display it in the client view
                         _userChatRoomAssistantInstance.AddInviteToAllReceivedPendingChatRoomInvites(payload.InviteToGuestUser);
+                        serverCommunicationInfo.LogReportCallback("User Sent Invite");
                         break;
 
                     case MessageActionType.ServerUserAcceptInvite:
@@ -157,9 +178,26 @@ namespace ChatRoomClient.DomainLayer
                         {
                             _userChatRoomAssistantInstance.RemoveInviteFromAllReceivedPendingChatRoomInvites(inviteReceived.InviteId);
                         }
-
+                        serverCommunicationInfo.LogReportCallback("Guest User accepted Invite");
                         break;
-                    
+
+                    case MessageActionType.ServerUserRejectInvite:
+                        Invite inviteReceivedForDeletion = payload.InviteToGuestUser;
+                        if(inviteReceivedForDeletion != null)
+                        {
+                            _userChatRoomAssistantInstance.RemoveInviteFromAllReceivedPendingChatRoomInvites(inviteReceivedForDeletion.InviteId);
+                        }
+                        serverCommunicationInfo.LogReportCallback($"User {payload.InviteToGuestUser.GuestServerUser.Username} Rejected Invite");
+                        break;
+
+                    case MessageActionType.ServerExitChatRoomAccepted:
+                        //We remove the chat room from the list of chat rooms
+                        ChatRoom chatRoom  = payload.ChatRoomCreated;
+                        _userChatRoomAssistantInstance.RemoveChatRoomFromAllActiveChatRooms(chatRoom.ChatRoomId);
+                        serverCommunicationInfo.LogReportCallback($"User Exited {chatRoom.ChatRoomName} Successfully");
+                        break;
+
+
                 }
             }
            
@@ -181,8 +219,7 @@ namespace ChatRoomClient.DomainLayer
         {
             IUser currentActiveMainUser = _userChatRoomAssistantInstance.GetActiveMainUser();
             if (currentActiveMainUser == null)
-            {
-                
+            {                
                 _userChatRoomAssistantInstance.SetActiveMainUser(userForActivation);
             }
         }

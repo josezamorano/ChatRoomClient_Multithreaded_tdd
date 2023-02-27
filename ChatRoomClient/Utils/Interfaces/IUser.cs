@@ -13,6 +13,6 @@ namespace ChatRoomClient.Utils.Interfaces
 
         void SendMessageToChatRoom(ServerCommunicationInfo serverCommunicationInfo);
 
-        void LeaveChatRoom();
+        void ExitChatRoom(ServerCommunicationInfo serverCommunicationInfo);
     }
 }

@@ -8,6 +8,6 @@ namespace ChatRoomClient.Utils.Interfaces
 
         void SendMessageToServer(ServerCommunicationInfo serverCommunicationInfo);
 
-        void DisconnectFromServer(ClientLogReportDelegate statusReportCallback, ClientConnectionReportDelegate connectionReportCallback);
+        void DisconnectFromServer(ServerCommunicationInfo serverCommunicationInfo);
     }
 }

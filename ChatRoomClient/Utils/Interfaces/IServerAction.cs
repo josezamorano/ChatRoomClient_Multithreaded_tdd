@@ -9,7 +9,7 @@ namespace ChatRoomClient.Utils.Interfaces
     {
         void SetActiveTcpClient(TcpClient activeTcpClient);
 
-        void ExecuteDisconnectFromServer(ClientLogReportDelegate logReportCallback, ClientConnectionReportDelegate connectionReportCallback);
+        void ExecuteDisconnectFromServer(ServerCommunicationInfo serverCommunicationInfo);
 
         void ExecuteCommunicationSendMessageToServer(Payload payload, ServerCommunicationInfo serverCommunicationInfo);
                

@@ -16,7 +16,7 @@ namespace ChatRoomClient
 
     public delegate void UsernameStatusReportDelegate(MessageActionType messageActionType);
 
-    public delegate void OtherServerUsersReportDelegate(List<ServerUser> otherActiveUsers);
+    public delegate void OtherActiveServerUsersUpdateDelegate(List<ServerUser> otherActiveUsers);
 
     public delegate void ChatRoomUpdateDelegate(List<ChatRoom> allActiveChatrooms);
 
@@ -70,6 +70,9 @@ namespace ChatRoomClient
             btnCreateChatRoomSendInvites.Enabled = false;
 
             chkBoxAddGuests.Enabled = false;
+
+            OtherActiveServerUsersUpdateDelegate otherActiveServerUsersUpdateCallback = new OtherActiveServerUsersUpdateDelegate(DisplayOtherActiveUsersCallback);
+            _userChatRoomAssistantInstance.SetOtherActiveServerUsersUpdate(otherActiveServerUsersUpdateCallback);
 
             ChatRoomUpdateDelegate chatRoomUpdateCallback = new ChatRoomUpdateDelegate(ChatRoomUpdate_ThreadCallback);
             _userChatRoomAssistantInstance.SetChatRoomUpdateCallback(chatRoomUpdateCallback);
@@ -163,9 +166,8 @@ namespace ChatRoomClient
 
         private void BtnClientDisconnectFromServer_ClickEvent(object sender, EventArgs e)
         {
-            ClientLogReportDelegate logReportCallback = new ClientLogReportDelegate(ClientLogReportCallback);
-            ClientConnectionReportDelegate connectionReportCallback = new ClientConnectionReportDelegate(ClientConnectionReportCallback);
-            _clientManager.DisconnectFromServer(logReportCallback, connectionReportCallback);
+            ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
+            _clientManager.DisconnectFromServer(serverCommunicationInfo);
         }
 
         private void BtnUsernameRetry_ClickEvent(object sender, EventArgs e)
@@ -344,7 +346,6 @@ namespace ChatRoomClient
             ClientLogReportDelegate logReportCallback = new ClientLogReportDelegate(ClientLogReportCallback);
             ClientConnectionReportDelegate connectionReportCallback = new ClientConnectionReportDelegate(ClientConnectionReportCallback);
             UsernameStatusReportDelegate usernameStatusReportCallback = new UsernameStatusReportDelegate(UsernameActivationStatusCallback);
-            OtherServerUsersReportDelegate otherServerUsersReportCallback = new OtherServerUsersReportDelegate(DisplayOtherActiveUsersCallback);
 
             ServerCommunicationInfo serverCommunicationInfo = new ServerCommunicationInfo()
             {
@@ -355,8 +356,7 @@ namespace ChatRoomClient
                 SelectedGuestUsers = GetAllSelectedServerUsers(),
                 LogReportCallback = logReportCallback,
                 ConnectionReportCallback = connectionReportCallback,
-                UsernameStatusReportCallback = usernameStatusReportCallback,
-                OtherServerUsersReportCallback = otherServerUsersReportCallback
+                UsernameStatusReportCallback = usernameStatusReportCallback
             };
             return serverCommunicationInfo;
         }
@@ -451,7 +451,7 @@ namespace ChatRoomClient
         {
             Thread threadChatRoomUpdateEvent = new Thread(() =>
             {
-                if (allActiveChatRooms.Count > 0)
+                if (allActiveChatRooms.Count >= 0)
                 {
                     ResolveChatRoomDynamicControl(allActiveChatRooms);
                 }
@@ -509,7 +509,7 @@ namespace ChatRoomClient
         {
             Action actionChatRoomUpdate = () =>
             {
-                if (_tlpChatRoomCanvas.Controls.Count > 0)
+                if (_tlpChatRoomCanvas.Controls.Count >= 0)
                 {
                     _tlpChatRoomCanvas.Controls.Clear();
                 }
@@ -606,59 +606,58 @@ namespace ChatRoomClient
         private void ButtonSendMessage_Click(object? sender, EventArgs e)
         {
             var buttonSendMessage = (Button)sender;
-            var buttonSendMessageId = buttonSendMessage.Name;
-            bool messageSent = false;
+
+            ServerCommunicationInfo serverCommunicationInfo = GetChatRoomInfoFromControls(buttonSendMessage);
+            if (!string.IsNullOrEmpty(serverCommunicationInfo.MessageToChatRoom))
+            {
+                _user.SendMessageToChatRoom(serverCommunicationInfo);
+            }
+
+        }
+
+        private void ButtonExitChatroom_Click(object sender, EventArgs e)
+        {
+            //PENDING
+            var buttonExitChatRoom = (Button)sender;
+            var info = buttonExitChatRoom.Name;
+            ServerCommunicationInfo serverCommunicationInfo = GetChatRoomInfoFromControls(buttonExitChatRoom);
+            _user.ExitChatRoom(serverCommunicationInfo);
+        }
+
+        private ServerCommunicationInfo GetChatRoomInfoFromControls(Button buttonControl)
+        {
+            var buttonId = buttonControl.Name;
             foreach (var control in this._tlpChatRoomCanvas.Controls)
             {
                 if (control is TableLayoutPanel)
                 {
                     TableLayoutPanel tlp = (TableLayoutPanel)control;
                     string tlpId = tlp.Name;
-                    if (tlpId == buttonSendMessageId)
+                    if (tlpId == buttonId)
                     {
                         foreach (var itemControl in tlp.Controls)
                         {
                             if (itemControl is TextBox)
                             {
                                 TextBox textBoxMessage = (TextBox)itemControl;
-                                if (textBoxMessage.Name == buttonSendMessageId && !string.IsNullOrEmpty(textBoxMessage.Text))
+                                if (textBoxMessage.Name == buttonId)
                                 {
                                     string[] chatRoomIdentifierArray = textBoxMessage.Name.Split('_');
                                     string chatRoomName = (chatRoomIdentifierArray.Length > 0) ? chatRoomIdentifierArray[0] : string.Empty;
                                     Guid chatRoomId = (chatRoomIdentifierArray.Length > 1) ? new Guid(chatRoomIdentifierArray[1]) : Guid.Empty;
-                                    //Send message
                                     ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
                                     serverCommunicationInfo.ChatRoomName = chatRoomName;
                                     serverCommunicationInfo.ChatRoomId = chatRoomId;
                                     serverCommunicationInfo.MessageToChatRoom = textBoxMessage.Text;
-                                    _user.SendMessageToChatRoom(serverCommunicationInfo);
-
-
-                                    textBoxMessage.Text = string.Empty;
-                                    messageSent = true;
-                                    break;
+                                    return serverCommunicationInfo;
                                 }
                             }
                         }
                     }
                 }
-                if (messageSent)
-                {
-                    break;
-                }
             }
+            return null;
         }
-
-        private void ButtonExitChatroom_Click(object sender, EventArgs e)
-        {
-            //PENDING
-            var button = (Button)sender;
-            var info = button.Name;
-            var value = "stop here";
-
-        }
-
-
 
         private void InviteDisplay_ThreadCallback(List<ControlInvite> allPendingInvites)
         {
@@ -894,41 +893,9 @@ namespace ChatRoomClient
         private void ButtonAcceptInvite_ClickEvent(object sender, EventArgs e)
         {
             Button btnAcceptInvite = (Button)sender;
-            string btnInviteId = btnAcceptInvite.Name;
-            bool actionExecuted = false;
-            foreach (var control in this._tlpInviteCanvas.Controls)
-            {
-                if (control is TableLayoutPanel)
-                {
-                    TableLayoutPanel tlp = (TableLayoutPanel)control;
-                    string tlpId = tlp.Name;
-                    if (tlpId == btnInviteId)
-                    {
-                        foreach (var itemControl in tlp.Controls)
-                        {
-                            if (itemControl is Label)
-                            {
-                                Label labelChatRoom = (Label)itemControl;
-                                if (labelChatRoom.Text == "Room:")
-                                {
-                                    string chatRoomId = labelChatRoom.Name;
-                                    ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
-                                    serverCommunicationInfo.InviteId = new Guid(btnInviteId);
-                                    serverCommunicationInfo.ChatRoomId = new Guid(chatRoomId);
-                                    serverCommunicationInfo.ChatRoomName = string.Empty;
-                                    _user.AcceptInvite(serverCommunicationInfo);
-                                    actionExecuted = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (actionExecuted)
-                {
-                    break;
-                }
-            }
+            ServerCommunicationInfo serverCommunicationInfo = GetInviteInfoFromControls(btnAcceptInvite);
+            if (serverCommunicationInfo == null) { return; }
+            _user.AcceptInvite(serverCommunicationInfo);
         }
 
         private void ButtonRejectInvite_ClickEvent(object sender, EventArgs e)
@@ -937,7 +904,6 @@ namespace ChatRoomClient
             ServerCommunicationInfo serverCommunicationInfo = GetInviteInfoFromControls(btnRejectInvite);
             if (serverCommunicationInfo == null) { return; }
             _user.RejectInvite(serverCommunicationInfo);
-
         }
 
 

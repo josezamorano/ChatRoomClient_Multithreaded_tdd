@@ -23,7 +23,5 @@
         public ClientConnectionReportDelegate ConnectionReportCallback { get; set; }
 
         public UsernameStatusReportDelegate UsernameStatusReportCallback { get; set; }
-
-        public OtherServerUsersReportDelegate OtherServerUsersReportCallback { get; set; }
     }
 }
