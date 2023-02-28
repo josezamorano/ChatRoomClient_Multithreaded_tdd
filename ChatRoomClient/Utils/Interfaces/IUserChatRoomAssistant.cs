@@ -39,6 +39,8 @@ namespace ChatRoomClient.Utils.Interfaces
 
         void RemoveAllChatRooms();
 
+        void RemoveUserFromAllChatRooms(Guid serverUserId);
+
         //**Invites**
         void AddInviteToAllReceivedPendingChatRoomInvites(Invite invite);
 

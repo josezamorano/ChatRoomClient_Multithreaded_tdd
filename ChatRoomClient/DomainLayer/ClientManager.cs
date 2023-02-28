@@ -4,7 +4,8 @@ using System.Net;
 using ChatRoomClient.DomainLayer.Models;
 using ChatRoomClient.Services;
 using ChatRoomClient.Utils.Enumerations;
-using Microsoft.VisualBasic.Logging;
+
+
 
 namespace ChatRoomClient.DomainLayer
 {
@@ -126,11 +127,15 @@ namespace ChatRoomClient.DomainLayer
                         _userChatRoomAssistantInstance.RemoveAllInvites();
 
                         _serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
+                        serverCommunicationInfo.LogReportCallback("Client Disconnected from Server");
                         break;
 
                     case MessageActionType.ServerUserIsDisconnected:
 
-                        //TO DO
+                        Guid serverUserId = (Guid)payload.ServerUserDisconnected.ServerUserID;
+                        _userChatRoomAssistantInstance.RemoveUserFromAllChatRooms(serverUserId);
+                        _userChatRoomAssistantInstance.UpdateAllActiveServerUsers(payload.ActiveServerUsers);
+                        serverCommunicationInfo.LogReportCallback("Guest User Disconnected from Server");
                         break;
 
                     case MessageActionType.ServerChatRoomCreated:

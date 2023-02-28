@@ -17,8 +17,8 @@ namespace ChatRoomClient.DomainLayer
         private OtherActiveServerUsersUpdateDelegate _otherActiveServerUsersUpdateCallback;
         private ChatRoomUpdateDelegate _chatRoomUpdateCallback;
         private InviteUpdateDelegate _inviteUpdateCallback;
-      
-        
+
+
         IObjectCreator _objectCreator;
         IServerAction _serverAction;
         public UserChatRoomAssistant(IObjectCreator objectCreator, IServerAction serverAction)
@@ -28,12 +28,12 @@ namespace ChatRoomClient.DomainLayer
 
             _allActiveServerUsers = new List<ServerUser>();
             _allActiveChatRooms = new List<ChatRoom>();
-            _allReceivedPendingChatRoomInvites = new List<ControlInvite>(); 
+            _allReceivedPendingChatRoomInvites = new List<ControlInvite>();
         }
 
         public IUserChatRoomAssistant GetInstance()
         {
-            
+
             if (userChatRoomAssistant == null)
             {
                 userChatRoomAssistant = new UserChatRoomAssistant(_objectCreator, _serverAction);
@@ -65,7 +65,7 @@ namespace ChatRoomClient.DomainLayer
             return _ActiveMainUser;
         }
 
-        
+
         public List<ServerUser> GetAllActiveServerUsers()
         {
             return _allActiveServerUsers;
@@ -74,11 +74,11 @@ namespace ChatRoomClient.DomainLayer
         public void UpdateAllActiveServerUsers(List<ServerUser> allActiveServerUsers)
         {
             _allActiveServerUsers = allActiveServerUsers;
-            var itemForRemoval = _allActiveServerUsers.Where(a=>a.ServerUserID == _ActiveMainUser.UserID).FirstOrDefault();
-          
-            if (itemForRemoval !=null)
+            var itemForRemoval = _allActiveServerUsers.Where(a => a.ServerUserID == _ActiveMainUser.UserID).FirstOrDefault();
+
+            if (itemForRemoval != null)
             {
-                var itemRemoved = _allActiveServerUsers.Remove(itemForRemoval);               
+                var itemRemoved = _allActiveServerUsers.Remove(itemForRemoval);
             }
             _otherActiveServerUsersUpdateCallback(_allActiveServerUsers);
         }
@@ -95,19 +95,19 @@ namespace ChatRoomClient.DomainLayer
             string chatRoomName = serverCommunicationInfo.ChatRoomName;
             ServerUser mainServerUser = GetMainUserAsServerUser();
             var allInvitesForGuests = _objectCreator.CreateAllInvitesForAllGuestServerUsers(mainServerUser, chatRoomName, serverCommunicationInfo.SelectedGuestUsers);
-            var chatRoom = _objectCreator.CreateChatRoom(mainServerUser, chatRoomName , allInvitesForGuests );
-            Payload payload = _objectCreator.CreatePayload(MessageActionType.ManagerCreateChatRoomAndSendInvites,mainServerUser.Username,mainServerUser.ServerUserID,chatRoom);
+            var chatRoom = _objectCreator.CreateChatRoom(mainServerUser, chatRoomName, allInvitesForGuests);
+            Payload payload = _objectCreator.CreatePayload(MessageActionType.ManagerCreateChatRoomAndSendInvites, mainServerUser.Username, mainServerUser.ServerUserID, chatRoom);
             _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 
         public bool AddChatRoomToAllActiveChatRooms(ChatRoom chatRoom)
         {
             var existingChatRoom = _allActiveChatRooms.Where(x => x.ChatRoomId == chatRoom.ChatRoomId).FirstOrDefault();
-            if(existingChatRoom == null)
+            if (existingChatRoom == null)
             {
                 _allActiveChatRooms.Add(chatRoom);
                 _chatRoomUpdateCallback(_allActiveChatRooms);
-                
+
                 return true;
             }
 
@@ -130,10 +130,10 @@ namespace ChatRoomClient.DomainLayer
 
         public bool UpdateActiveUsersInChatRoom(Guid chatRoomId, List<ServerUser> updatedActiveUsersInChatRoom)
         {
-            var targetChatRoom = _allActiveChatRooms.Where(a=>a.ChatRoomId == chatRoomId).FirstOrDefault();
-            if(targetChatRoom == null) { return false; }
+            var targetChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomId == chatRoomId).FirstOrDefault();
+            if (targetChatRoom == null) { return false; }
             targetChatRoom.AllActiveUsersInChatRoom = updatedActiveUsersInChatRoom;
-           
+
 
             _chatRoomUpdateCallback(_allActiveChatRooms);
 
@@ -144,11 +144,11 @@ namespace ChatRoomClient.DomainLayer
         {
             return _allActiveChatRooms;
         }
-                
+
         public void AddMessageToChatRoomConversation(Guid chatRoomId, string message)
         {
-            ChatRoom targetChatRoom = _allActiveChatRooms.Where(a=>a.ChatRoomId == chatRoomId).FirstOrDefault();
-            if(targetChatRoom != null) 
+            ChatRoom targetChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomId == chatRoomId).FirstOrDefault();
+            if (targetChatRoom != null)
             {
                 targetChatRoom.ConversationRecord += CRLF + message;
                 _chatRoomUpdateCallback(_allActiveChatRooms);
@@ -158,6 +158,21 @@ namespace ChatRoomClient.DomainLayer
         public void RemoveAllChatRooms()
         {
             _allActiveChatRooms.Clear();
+
+            _chatRoomUpdateCallback(_allActiveChatRooms);
+        }
+
+
+        public void RemoveUserFromAllChatRooms(Guid serverUserId)
+        {
+            foreach(ChatRoom chatRoom in _allActiveChatRooms)
+            {
+                var serverUserForDeletion = chatRoom.AllActiveUsersInChatRoom.Where(a=>a.ServerUserID == serverUserId).FirstOrDefault();
+                if(serverUserForDeletion != null)
+                {
+                    chatRoom.AllActiveUsersInChatRoom.Remove(serverUserForDeletion);
+                }
+            }
 
             _chatRoomUpdateCallback(_allActiveChatRooms);
         }
