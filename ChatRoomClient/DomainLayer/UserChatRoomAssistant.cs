@@ -12,7 +12,7 @@ namespace ChatRoomClient.DomainLayer
         private UserChatRoomAssistant userChatRoomAssistant;
 
         private List<ServerUser> _allActiveServerUsers;
-        private List<ChatRoom> _allActiveChatRooms;
+        private List<ControlChatRoom> _allActiveChatRooms;
         private List<ControlInvite> _allReceivedPendingChatRoomInvites;
         private OtherActiveServerUsersUpdateDelegate _otherActiveServerUsersUpdateCallback;
         private ChatRoomUpdateDelegate _chatRoomUpdateCallback;
@@ -27,7 +27,7 @@ namespace ChatRoomClient.DomainLayer
             _serverAction = serverAction;
 
             _allActiveServerUsers = new List<ServerUser>();
-            _allActiveChatRooms = new List<ChatRoom>();
+            _allActiveChatRooms = new List<ControlChatRoom>();
             _allReceivedPendingChatRoomInvites = new List<ControlInvite>();
         }
 
@@ -100,12 +100,19 @@ namespace ChatRoomClient.DomainLayer
             _serverAction.ExecuteCommunicationSendMessageToServer(payload, serverCommunicationInfo);
         }
 
+       
         public bool AddChatRoomToAllActiveChatRooms(ChatRoom chatRoom)
         {
-            var existingChatRoom = _allActiveChatRooms.Where(x => x.ChatRoomId == chatRoom.ChatRoomId).FirstOrDefault();
+            var existingChatRoom = _allActiveChatRooms.Where(x => x.ChatRoomObject.ChatRoomId == chatRoom.ChatRoomId).FirstOrDefault();
             if (existingChatRoom == null)
             {
-                _allActiveChatRooms.Add(chatRoom);
+                ControlChatRoom newControlChatRoom = new ControlChatRoom() 
+                {
+                    ControlActionType = ControlActionType.Create,
+                    ChatRoomObject = chatRoom,
+                };
+
+                _allActiveChatRooms.Add(newControlChatRoom);
                 _chatRoomUpdateCallback(_allActiveChatRooms);
 
                 return true;
@@ -117,11 +124,10 @@ namespace ChatRoomClient.DomainLayer
         public bool RemoveChatRoomFromAllActiveChatRooms(Guid chatRoomId)
         {
             bool taskExecuted = false;
-            ChatRoom chatRoomForDeletion = _allActiveChatRooms.Where(x => x.ChatRoomId == chatRoomId).FirstOrDefault();
+            ControlChatRoom chatRoomForDeletion = _allActiveChatRooms.Where(x => x.ChatRoomObject .ChatRoomId == chatRoomId).FirstOrDefault();
             if (chatRoomForDeletion != null)
             {
-                _allActiveChatRooms.Remove(chatRoomForDeletion);
-
+                chatRoomForDeletion.ControlActionType = ControlActionType.Delete;
                 taskExecuted = true;
             }
             _chatRoomUpdateCallback(_allActiveChatRooms);
@@ -130,27 +136,29 @@ namespace ChatRoomClient.DomainLayer
 
         public bool UpdateActiveUsersInChatRoom(Guid chatRoomId, List<ServerUser> updatedActiveUsersInChatRoom)
         {
-            var targetChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomId == chatRoomId).FirstOrDefault();
+            ControlChatRoom targetChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomObject.ChatRoomId == chatRoomId).FirstOrDefault();
             if (targetChatRoom == null) { return false; }
-            targetChatRoom.AllActiveUsersInChatRoom = updatedActiveUsersInChatRoom;
-
+            targetChatRoom.ChatRoomObject.AllActiveUsersInChatRoom = updatedActiveUsersInChatRoom;
+            targetChatRoom.ControlActionType = ControlActionType.Update;
 
             _chatRoomUpdateCallback(_allActiveChatRooms);
 
             return true;
         }
 
-        public List<ChatRoom> GetAllActiveChatRooms()
+        public List<ControlChatRoom> GetAllActiveChatRooms()
         {
             return _allActiveChatRooms;
         }
 
         public void AddMessageToChatRoomConversation(Guid chatRoomId, string message)
         {
-            ChatRoom targetChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomId == chatRoomId).FirstOrDefault();
+            ControlChatRoom targetChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomObject.ChatRoomId == chatRoomId).FirstOrDefault();
             if (targetChatRoom != null)
             {
-                targetChatRoom.ConversationRecord += CRLF + message;
+                targetChatRoom.ChatRoomObject.ConversationRecord += CRLF + message;
+                targetChatRoom.ControlActionType = ControlActionType.Update;
+
                 _chatRoomUpdateCallback(_allActiveChatRooms);
             }
         }
@@ -165,16 +173,31 @@ namespace ChatRoomClient.DomainLayer
 
         public void RemoveUserFromAllChatRooms(Guid serverUserId)
         {
-            foreach(ChatRoom chatRoom in _allActiveChatRooms)
+            foreach(ControlChatRoom chatRoom in _allActiveChatRooms)
             {
-                var serverUserForDeletion = chatRoom.AllActiveUsersInChatRoom.Where(a=>a.ServerUserID == serverUserId).FirstOrDefault();
+                var serverUserForDeletion = chatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Where(a=>a.ServerUserID == serverUserId).FirstOrDefault();
                 if(serverUserForDeletion != null)
                 {
-                    chatRoom.AllActiveUsersInChatRoom.Remove(serverUserForDeletion);
+                    chatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Remove(serverUserForDeletion);
+                    chatRoom.ControlActionType = ControlActionType.Update;
                 }
             }
 
             _chatRoomUpdateCallback(_allActiveChatRooms);
+        }
+
+
+        public void RemoveUserFromSingleChatRoom(Guid chatRoomId, Guid serverUserId)
+        {
+            ControlChatRoom selectedControlChatRoom = _allActiveChatRooms.Where(a => a.ChatRoomObject.ChatRoomId == chatRoomId).FirstOrDefault();
+            if (selectedControlChatRoom == null) { return; }
+            
+            ServerUser targetUser = selectedControlChatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Where(a=>a.ServerUserID == serverUserId).FirstOrDefault();
+            if (targetUser == null) { return; }
+            selectedControlChatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Remove(targetUser);
+            selectedControlChatRoom.ControlActionType = ControlActionType.Update;
+            _chatRoomUpdateCallback(_allActiveChatRooms);
+
         }
         //CHATROOM END********
 
@@ -259,5 +282,7 @@ namespace ChatRoomClient.DomainLayer
         {
             throw new NotImplementedException();
         }
+
+        
     }
 }

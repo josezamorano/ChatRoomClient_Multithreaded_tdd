@@ -33,13 +33,15 @@ namespace ChatRoomClient.Utils.Interfaces
 
         bool UpdateActiveUsersInChatRoom(Guid chatRoomId, List<ServerUser> updatedActiveUsersInChatRoom);
 
-        List<ChatRoom> GetAllActiveChatRooms();
+        List<ControlChatRoom> GetAllActiveChatRooms();
 
         void AddMessageToChatRoomConversation(Guid chatRoomId, string message);
 
         void RemoveAllChatRooms();
 
         void RemoveUserFromAllChatRooms(Guid serverUserId);
+
+        void RemoveUserFromSingleChatRoom(Guid chatRoomId, Guid serverUserId);
 
         //**Invites**
         void AddInviteToAllReceivedPendingChatRoomInvites(Invite invite);

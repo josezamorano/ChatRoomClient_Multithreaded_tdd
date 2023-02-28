@@ -146,11 +146,11 @@ namespace ChatRoomClient.DomainLayer
                         break;
 
                     case MessageActionType.ServerBroadcastMessageToChatRoom:
-                        List<ChatRoom> allActiveChatRooms = _userChatRoomAssistantInstance.GetAllActiveChatRooms();
-                        var targetChatRoom = allActiveChatRooms.Where(a=>a.ChatRoomId == payload.ChatRoomCreated.ChatRoomId).FirstOrDefault();
+                        List<ControlChatRoom> allActiveChatRooms = _userChatRoomAssistantInstance.GetAllActiveChatRooms();
+                        ControlChatRoom targetChatRoom = allActiveChatRooms.Where(a=>a.ChatRoomObject.ChatRoomId == payload.ChatRoomCreated.ChatRoomId).FirstOrDefault();
                         if(targetChatRoom != null)
                         {
-                            _userChatRoomAssistantInstance.AddMessageToChatRoomConversation(targetChatRoom.ChatRoomId, payload.MessageToChatRoom);
+                            _userChatRoomAssistantInstance.AddMessageToChatRoomConversation(targetChatRoom.ChatRoomObject.ChatRoomId, payload.MessageToChatRoom);
                         }
 
                         _userChatRoomAssistantInstance.UpdateAllActiveServerUsers(payload.ActiveServerUsers);
@@ -169,7 +169,7 @@ namespace ChatRoomClient.DomainLayer
                         Guid chatRoomId = payload.ChatRoomCreated.ChatRoomId;
                         ChatRoom chatRoomUpdated = payload.ChatRoomCreated;
                         Invite inviteReceived = payload.InviteToGuestUser;
-                        ChatRoom chatRoomForUpdate = _userChatRoomAssistantInstance.GetAllActiveChatRooms().Where(a=>a.ChatRoomId == chatRoomId).FirstOrDefault();
+                        ControlChatRoom chatRoomForUpdate = _userChatRoomAssistantInstance.GetAllActiveChatRooms().Where(a=>a.ChatRoomObject.ChatRoomId == chatRoomId).FirstOrDefault();
                         if(chatRoomForUpdate == null)
                         {
                             _userChatRoomAssistantInstance.AddChatRoomToAllActiveChatRooms(chatRoomUpdated);                          
@@ -197,9 +197,17 @@ namespace ChatRoomClient.DomainLayer
 
                     case MessageActionType.ServerExitChatRoomAccepted:
                         //We remove the chat room from the list of chat rooms
-                        ChatRoom chatRoom  = payload.ChatRoomCreated;
+                        ChatRoom chatRoom  = payload.ChatRoomCreated;                                               
                         _userChatRoomAssistantInstance.RemoveChatRoomFromAllActiveChatRooms(chatRoom.ChatRoomId);
-                        serverCommunicationInfo.LogReportCallback($"User Exited {chatRoom.ChatRoomName} Successfully");
+                        serverCommunicationInfo.LogReportCallback($"Chat Room {chatRoom.ChatRoomName} Removed Successfully");
+                        break;                       
+
+                    case MessageActionType.ServerUserRemovedFromChatRoom:
+                        ChatRoom chatRoomInfo = payload.ChatRoomCreated;
+                        Guid targetServerUserId = (Guid)payload.ServerUserRemovedFromChatRoom.ServerUserID;
+                        _userChatRoomAssistantInstance.RemoveUserFromSingleChatRoom(chatRoomInfo.ChatRoomId, targetServerUserId);
+                        serverCommunicationInfo.LogReportCallback($"User Removed from Chat Room");
+                        break;
                         break;
 
 

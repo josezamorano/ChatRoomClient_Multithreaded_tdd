@@ -19,5 +19,7 @@ namespace ChatRoomClient.DomainLayer.Models
         public string MessageToChatRoom { get; set; }
 
         public ServerUser ServerUserDisconnected { get; set; }
+
+        public ServerUser ServerUserRemovedFromChatRoom { get; set; }
     }
 }

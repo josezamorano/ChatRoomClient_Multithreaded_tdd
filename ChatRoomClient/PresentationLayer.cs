@@ -18,7 +18,7 @@ namespace ChatRoomClient
 
     public delegate void OtherActiveServerUsersUpdateDelegate(List<ServerUser> otherActiveUsers);
 
-    public delegate void ChatRoomUpdateDelegate(List<ChatRoom> allActiveChatrooms);
+    public delegate void ChatRoomUpdateDelegate(List<ControlChatRoom> allActiveChatrooms);
 
     public delegate void InviteUpdateDelegate(List<ControlInvite> allPendingInvites);
     public partial class PresentationLayer : Form
@@ -70,18 +70,19 @@ namespace ChatRoomClient
             btnCreateChatRoomSendInvites.Enabled = false;
 
             chkBoxAddGuests.Enabled = false;
+            CreateChatRoomCanvasDynamicControl();
+            CreateInviteCanvasDynamicControl();
 
             OtherActiveServerUsersUpdateDelegate otherActiveServerUsersUpdateCallback = new OtherActiveServerUsersUpdateDelegate(DisplayOtherActiveUsersCallback);
             _userChatRoomAssistantInstance.SetOtherActiveServerUsersUpdate(otherActiveServerUsersUpdateCallback);
-
-            ChatRoomUpdateDelegate chatRoomUpdateCallback = new ChatRoomUpdateDelegate(ChatRoomUpdate_ThreadCallback);
-            _userChatRoomAssistantInstance.SetChatRoomUpdateCallback(chatRoomUpdateCallback);
 
             //TESTING ONLY
             //var chatRooms = GetAllChatRoomsTest();
             //ChatRoomUpdate_ThreadCallback(chatRooms);
 
-            CreateInviteCanvasDynamicControl();
+            ChatRoomUpdateDelegate chatRoomUpdateCallback = new ChatRoomUpdateDelegate(ChatRoomUpdate_ThreadCallback);
+            _userChatRoomAssistantInstance.SetChatRoomUpdateCallback(chatRoomUpdateCallback);
+
 
             InviteUpdateDelegate inviteUpdateCallback = new InviteUpdateDelegate(InviteDisplay_ThreadCallback);
             _userChatRoomAssistantInstance.SetInviteUpdateCallback(inviteUpdateCallback);
@@ -89,8 +90,6 @@ namespace ChatRoomClient
             //TESTING ONLY
             //var allInvites = GetAllControlInvitesTEST();
             //InviteDisplay_ThreadCallback(allInvites);
-
-
         }
 
         private void txtUsername_TextChanged(object sender, EventArgs e)
@@ -447,13 +446,19 @@ namespace ChatRoomClient
 
         #region Dynamic Controls
 
-        private void ChatRoomUpdate_ThreadCallback(List<ChatRoom> allActiveChatRooms)
+        private void ChatRoomUpdate_ThreadCallback(List<ControlChatRoom> allActiveControlChatRooms)
         {
             Thread threadChatRoomUpdateEvent = new Thread(() =>
             {
-                if (allActiveChatRooms.Count >= 0)
+                if (allActiveControlChatRooms.Count >= 0)
                 {
-                    ResolveChatRoomDynamicControl(allActiveChatRooms);
+                    List<ControlChatRoom> allChatRoomsPendingResolution = allActiveControlChatRooms.Where(a => a.ControlActionType != ControlActionType.Read).ToList();
+                    foreach (ControlChatRoom pendingControlChatRoom in allActiveControlChatRooms)
+                    {
+                        ResolveChatRoomDynamicControl(pendingControlChatRoom);
+                    }
+                    List<ControlChatRoom> allChatRoomsForDeletion = allActiveControlChatRooms.Where(a => a.ControlActionType == ControlActionType.Delete).ToList();
+                    allActiveControlChatRooms.RemoveAllExtension(allChatRoomsForDeletion);
                 }
             });
             threadChatRoomUpdateEvent.Name = "threadChatRoomUpdateEvent";
@@ -504,101 +509,190 @@ namespace ChatRoomClient
             return allChatRooms;
         }
 
+        private void CreateChatRoomCanvasDynamicControl()
+        {
+            _tlpChatRoomCanvas.Dock = DockStyle.Fill;
+            _tlpChatRoomCanvas.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
+            _tlpChatRoomCanvas.ColumnCount = 1;
+            _tlpChatRoomCanvas.RowCount = 1;
+            _tlpChatRoomCanvas.BackColor = Color.White;
+            _tlpChatRoomCanvas.SetRowSpan(_tlpChatRoomCanvas, 3);
 
-        public void ResolveChatRoomDynamicControl(List<ChatRoom> chatRooms)
+            _tlpChatRoomCanvas.HorizontalScroll.Maximum = 0;
+            _tlpChatRoomCanvas.HorizontalScroll.Visible = false;
+            _tlpChatRoomCanvas.AutoScroll = false;
+            _tlpChatRoomCanvas.VerticalScroll.Visible = true;
+            _tlpChatRoomCanvas.AutoScroll = true;
+            tlpBase.Controls.Add(_tlpChatRoomCanvas, 2, 0);
+
+        }
+
+
+        public void ResolveChatRoomDynamicControl(ControlChatRoom controlChatRoom)
         {
             Action actionChatRoomUpdate = () =>
             {
-                if (_tlpChatRoomCanvas.Controls.Count >= 0)
-                {
-                    _tlpChatRoomCanvas.Controls.Clear();
-                }
                 int canvasWidth = 430;
-                _tlpChatRoomCanvas.Dock = DockStyle.Fill;
-                _tlpChatRoomCanvas.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
-                _tlpChatRoomCanvas.ColumnCount = 1;
-                _tlpChatRoomCanvas.RowCount = 1;
-                _tlpChatRoomCanvas.BackColor = Color.White;
-                _tlpChatRoomCanvas.SetRowSpan(_tlpChatRoomCanvas, 3);
+                string activeUsersInChatRoomCount = controlChatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Count.ToString();
+                string chatRoomIdentifier = controlChatRoom.ChatRoomObject.ChatRoomIdentifierNameId;
+                string[] allActiveUsers = controlChatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Select(a => a.Username).ToArray();
+                string conversationRecord = controlChatRoom.ChatRoomObject.ConversationRecord;
+                string controlChatRoomId = controlChatRoom.ChatRoomObject.ChatRoomId.ToString();
+                string labelActiveUsersInChatRoomCountName = "lblActiveUsersInChatRoomCount";
+                string listBoxActiveUsersName = "listBoxActiveUsers";
+                string textBoxChatRoomConversationName = "TextBoxConversationRecord";
 
-                _tlpChatRoomCanvas.HorizontalScroll.Maximum = 0;
-                _tlpChatRoomCanvas.HorizontalScroll.Visible = false;
-                _tlpChatRoomCanvas.AutoScroll = false;
-                _tlpChatRoomCanvas.VerticalScroll.Visible = true;
-                _tlpChatRoomCanvas.AutoScroll = true;
-
-                for (var a = 0; a < chatRooms.Count; a++)
+                switch (controlChatRoom.ControlActionType)
                 {
-                    var activeUsersInChatRoom = chatRooms[a].AllActiveUsersInChatRoom.Count.ToString();
-                    var chatRoomIdentifier = chatRooms[a].ChatRoomIdentifierNameId;
-                    string[] allActiveUsers = chatRooms[a].AllActiveUsersInChatRoom.Select(a => a.Username).ToArray();
-                    string conversationRecord = chatRooms[a].ConversationRecord;
-                    string controlId = chatRoomIdentifier + "_" + a;
+                    case ControlActionType.Create:
 
-                    var tlpRow = new TableLayoutPanel();
-                    tlpRow.Name = controlId;
-                    tlpRow.Height = 300;
-                    tlpRow.Width = canvasWidth;
-                    tlpRow.BackColor = Color.LightGray;
-                    tlpRow.ColumnCount = 3;
-                    tlpRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88F));
-                    tlpRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
-                    tlpRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
+                        var tlpNewRow = new TableLayoutPanel();
+                        tlpNewRow.Name = controlChatRoomId;
+                        tlpNewRow.Height = 300;
+                        tlpNewRow.Width = canvasWidth;
+                        tlpNewRow.BackColor = Color.LightGray;
+                        tlpNewRow.ColumnCount = 3;
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 88F));
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250F));
+                        tlpNewRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50F));
 
-                    tlpRow.RowCount = 5;
-                    tlpRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-                    tlpRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-                    tlpRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
-                    tlpRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 190F));
-                    tlpRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        tlpNewRow.RowCount = 5;
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 190F));
+                        tlpNewRow.RowStyles.Add(new RowStyle(SizeType.Absolute, 25F));
 
-                    tlpRow.Controls.Add(new Label() { Text = "Identifier:", BorderStyle = BorderStyle.FixedSingle, Width = 80, TextAlign = ContentAlignment.MiddleRight }, 0, 0);
-                    tlpRow.Controls.Add(new Label() { Text = "Users:", BorderStyle = BorderStyle.FixedSingle, Width = 80, TextAlign = ContentAlignment.MiddleRight }, 0, 1);
-                    tlpRow.Controls.Add(new Label() { Text = activeUsersInChatRoom, BorderStyle = BorderStyle.FixedSingle, Width = 80, TextAlign = ContentAlignment.MiddleCenter }, 0, 2);
-                    tlpRow.Controls.Add(new Label() { Text = chatRoomIdentifier, Enabled = false, Width = 250, BorderStyle = BorderStyle.FixedSingle }, 1, 0);
-                    ListBox activeUsers = new ListBox() { Enabled = true, Width = 350, BackColor = SystemColors.Control, BorderStyle = BorderStyle.Fixed3D };
-                    activeUsers.Items.AddRange(allActiveUsers);
-                    tlpRow.SetRowSpan(activeUsers, 2);
-                    tlpRow.Controls.Add(activeUsers, 1, 1);
+                        tlpNewRow.Controls.Add(new Label() { Text = "Identifier:", Name = "lblIdentifier", BorderStyle = BorderStyle.FixedSingle, Width = 80, TextAlign = ContentAlignment.MiddleRight }, 0, 0);
+                        tlpNewRow.Controls.Add(new Label() { Text = chatRoomIdentifier, Name = "lblChatRoomIdentifier", Enabled = false, Width = 250, BorderStyle = BorderStyle.FixedSingle }, 1, 0);
+                        tlpNewRow.Controls.Add(new Label() { Text = "Users:", Name = "lblUsers", BorderStyle = BorderStyle.FixedSingle, Width = 80, TextAlign = ContentAlignment.MiddleRight }, 0, 1);
+                        tlpNewRow.Controls.Add(new Label() { Text = activeUsersInChatRoomCount, Name = labelActiveUsersInChatRoomCountName, BorderStyle = BorderStyle.FixedSingle, Width = 80, TextAlign = ContentAlignment.MiddleCenter }, 0, 2);
 
-                    Button buttonExitChatroom = new Button();
-                    buttonExitChatroom.Name = controlId;
-                    buttonExitChatroom.Text = "Exit Chat Room";
-                    buttonExitChatroom.Dock = DockStyle.Fill;
-                    buttonExitChatroom.Click += ButtonExitChatroom_Click;
-                    buttonExitChatroom.Width = 50;
-                    tlpRow.SetRowSpan(buttonExitChatroom, 3);
-                    tlpRow.Controls.Add(buttonExitChatroom, 3, 0);
+                        ListBox activeUsers = new ListBox() { Enabled = true, Width = 350, BackColor = SystemColors.Control, BorderStyle = BorderStyle.Fixed3D };
+                        activeUsers.Name = listBoxActiveUsersName;
+                        activeUsers.Items.AddRange(allActiveUsers);
+                        tlpNewRow.SetRowSpan(activeUsers, 2);
+                        tlpNewRow.Controls.Add(activeUsers, 1, 1);
+
+                        Button buttonExitChatroom = new Button();
+                        buttonExitChatroom.Name = controlChatRoomId;
+                        buttonExitChatroom.Text = "Exit Chat Room";
+                        buttonExitChatroom.Dock = DockStyle.Fill;
+                        buttonExitChatroom.Click += ButtonExitChatroom_Click;
+                        buttonExitChatroom.Width = 50;
+                        tlpNewRow.SetRowSpan(buttonExitChatroom, 3);
+                        tlpNewRow.Controls.Add(buttonExitChatroom, 3, 0);
 
 
-                    TextBox chatRoomConversation = new TextBox();
-                    chatRoomConversation.Dock = DockStyle.Fill;
-                    chatRoomConversation.Enabled = false;
-                    chatRoomConversation.Multiline = true;
-                    chatRoomConversation.Text = conversationRecord;
-                    tlpRow.SetColumnSpan(chatRoomConversation, 3);
-                    tlpRow.Controls.Add(chatRoomConversation, 0, 3);
+                        TextBox chatRoomConversation = new TextBox();
+                        chatRoomConversation.Name = textBoxChatRoomConversationName;
+                        chatRoomConversation.Dock = DockStyle.Fill;
+                        chatRoomConversation.Enabled = false;
+                        chatRoomConversation.Multiline = true;
+                        chatRoomConversation.Text = conversationRecord;
+                        tlpNewRow.SetColumnSpan(chatRoomConversation, 3);
+                        tlpNewRow.Controls.Add(chatRoomConversation, 0, 3);
 
-                    TextBox message = new TextBox();
-                    message.Dock = DockStyle.Fill;
-                    message.Name = controlId;
-                    tlpRow.SetColumnSpan(message, 2);
-                    tlpRow.Controls.Add(message, 0, 4);
+                        TextBox message = new TextBox();
+                        message.Dock = DockStyle.Fill;
+                        message.Name = controlChatRoomId;
+                        tlpNewRow.SetColumnSpan(message, 2);
+                        tlpNewRow.Controls.Add(message, 0, 4);
 
-                    Button buttonSendMessage = new Button();
-                    buttonSendMessage.Name = controlId;
-                    buttonSendMessage.Text = "Send";
-                    buttonSendMessage.Dock = DockStyle.Fill;
-                    buttonSendMessage.Click += ButtonSendMessage_Click;
+                        Button buttonSendMessage = new Button();
+                        buttonSendMessage.Name = controlChatRoomId;
+                        buttonSendMessage.Text = "Send";
+                        buttonSendMessage.Dock = DockStyle.Fill;
+                        buttonSendMessage.Click += ButtonSendMessage_Click;
 
-                    _tlpChatRoomCanvas.SetColumnSpan(tlpRow, 3);
-                    tlpRow.Controls.Add(buttonSendMessage, 2, 4);
+                        _tlpChatRoomCanvas.SetColumnSpan(tlpNewRow, 3);
+                        tlpNewRow.Controls.Add(buttonSendMessage, 2, 4);
 
+                        int lastRowIndex = _tlpChatRoomCanvas.Controls.Count;
+                        _tlpChatRoomCanvas.Controls.Add(tlpNewRow, 0, lastRowIndex);
 
-                    _tlpChatRoomCanvas.Controls.Add(tlpRow, 0, a);
+                        controlChatRoom.ControlActionType = ControlActionType.Read;
+
+                        break;
+
+                    case ControlActionType.Update:
+                        string controlChatRoomIdForUpdate = controlChatRoom.ChatRoomObject.ChatRoomId.ToString();
+                        string allActiveUsersCount = controlChatRoom.ChatRoomObject.AllActiveUsersInChatRoom.Count.ToString();
+                        TableLayoutPanel tlpControlForUpdate = null;
+                        foreach (var control in this._tlpChatRoomCanvas.Controls)
+                        {
+                            if (control is TableLayoutPanel)
+                            {
+                                TableLayoutPanel tlpControl = (TableLayoutPanel)control;
+                                string tlpControlId = tlpControl.Name;
+                                if (tlpControlId == controlChatRoomIdForUpdate)
+                                {
+                                    tlpControlForUpdate = tlpControl;
+                                    break;
+                                }
+                            }
+                        }
+                        if (tlpControlForUpdate != null)
+                        {
+                            foreach (var control in tlpControlForUpdate.Controls)
+                            {
+                                if (control is Label)
+                                {
+                                    Label lblControl = (Label)control;
+                                    if (lblControl.Name == labelActiveUsersInChatRoomCountName)
+                                    {
+                                        lblControl.Text = activeUsersInChatRoomCount;
+                                    }
+                                }
+
+                                if (control is ListBox)
+                                {
+                                    ListBox lbControl = (ListBox)control;
+                                    if (lbControl.Name == listBoxActiveUsersName)
+                                    {
+                                        lbControl.Items.Clear();
+                                        lbControl.Items.AddRange(allActiveUsers);
+                                    }
+                                }
+
+                                if (control is TextBox)
+                                {
+                                    TextBox txtControl = (TextBox)control;
+
+                                    if (txtControl.Name == textBoxChatRoomConversationName)
+                                    {
+                                        txtControl.Text = conversationRecord;
+                                    }
+                                }
+                            }
+                        }
+
+                        controlChatRoom.ControlActionType = ControlActionType.Read;
+                        break;
+
+                    case ControlActionType.Delete:
+                        string controlChatRoomIdForDeletion = controlChatRoom.ChatRoomObject.ChatRoomId.ToString();
+                        TableLayoutPanel tlpControlForRemoval = null;
+                        foreach (var control in this._tlpChatRoomCanvas.Controls)
+                        {
+                            if (control is TableLayoutPanel)
+                            {
+                                TableLayoutPanel tlpControl = (TableLayoutPanel)control;
+                                string tlpControlId = tlpControl.Name;
+                                if (tlpControlId == controlChatRoomIdForDeletion)
+                                {
+                                    tlpControlForRemoval = tlpControl;
+                                    break;
+                                }
+                            }
+                        }
+                        if (tlpControlForRemoval != null)
+                        {
+                            this._tlpChatRoomCanvas.Controls.Remove(tlpControlForRemoval);
+                        }
+
+                        break;
                 }
-
-                tlpBase.Controls.Add(_tlpChatRoomCanvas, 2, 0);
             };
             this.tlpBase.BeginInvoke(actionChatRoomUpdate);
         }
@@ -617,7 +711,6 @@ namespace ChatRoomClient
 
         private void ButtonExitChatroom_Click(object sender, EventArgs e)
         {
-            //PENDING
             var buttonExitChatRoom = (Button)sender;
             var info = buttonExitChatRoom.Name;
             ServerCommunicationInfo serverCommunicationInfo = GetChatRoomInfoFromControls(buttonExitChatRoom);
@@ -642,11 +735,10 @@ namespace ChatRoomClient
                                 TextBox textBoxMessage = (TextBox)itemControl;
                                 if (textBoxMessage.Name == buttonId)
                                 {
-                                    string[] chatRoomIdentifierArray = textBoxMessage.Name.Split('_');
-                                    string chatRoomName = (chatRoomIdentifierArray.Length > 0) ? chatRoomIdentifierArray[0] : string.Empty;
-                                    Guid chatRoomId = (chatRoomIdentifierArray.Length > 1) ? new Guid(chatRoomIdentifierArray[1]) : Guid.Empty;
+
+                                    Guid chatRoomId = new Guid(buttonId);
                                     ServerCommunicationInfo serverCommunicationInfo = CreateServerCommunicationInfo();
-                                    serverCommunicationInfo.ChatRoomName = chatRoomName;
+                                    serverCommunicationInfo.ChatRoomName = string.Empty;
                                     serverCommunicationInfo.ChatRoomId = chatRoomId;
                                     serverCommunicationInfo.MessageToChatRoom = textBoxMessage.Text;
                                     return serverCommunicationInfo;
@@ -665,12 +757,13 @@ namespace ChatRoomClient
             {
                 if (allPendingInvites.Count > 0)
                 {
+                    //We modify the controls Create, update, Delete
                     List<ControlInvite> allInvitesPendingResolution = allPendingInvites.Where(a => a.ControlActionType != ControlActionType.Read).ToList();
                     foreach (ControlInvite pendingInvite in allInvitesPendingResolution)
                     {
                         ResolveInviteDynamicControl(pendingInvite);
                     }
-
+                    //We delete items from the actual list of items
                     List<ControlInvite> allInvitesForDeletion = allPendingInvites.Where(a => a.ControlActionType == ControlActionType.Delete).ToList();
 
                     allPendingInvites.RemoveAllExtension(allInvitesForDeletion);
