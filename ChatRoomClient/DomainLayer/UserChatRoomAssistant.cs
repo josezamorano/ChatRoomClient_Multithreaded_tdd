@@ -65,7 +65,7 @@ namespace ChatRoomClient.DomainLayer
             return _ActiveMainUser;
         }
 
-
+        //SERVERUSER BEGIN****
         public List<ServerUser> GetAllActiveServerUsers()
         {
             return _allActiveServerUsers;
@@ -88,7 +88,8 @@ namespace ChatRoomClient.DomainLayer
             _allActiveServerUsers.Clear();
             _otherActiveServerUsersUpdateCallback(_allActiveServerUsers);
         }
-
+        
+        //SERVERUSER END******
         //CHATROOM BEGIN******
         public void CreateChatRoomAndSendInvites(ServerCommunicationInfo serverCommunicationInfo)
         {
@@ -147,7 +148,7 @@ namespace ChatRoomClient.DomainLayer
         }
 
         public List<ControlChatRoom> GetAllActiveChatRooms()
-        {
+        {            
             return _allActiveChatRooms;
         }
 
@@ -165,7 +166,10 @@ namespace ChatRoomClient.DomainLayer
 
         public void RemoveAllChatRooms()
         {
-            _allActiveChatRooms.Clear();
+            foreach (ControlChatRoom controlChatRoom in _allActiveChatRooms)
+            {
+                controlChatRoom.ControlActionType = ControlActionType.Delete;
+            }
 
             _chatRoomUpdateCallback(_allActiveChatRooms);
         }
@@ -250,39 +254,9 @@ namespace ChatRoomClient.DomainLayer
                 Username = _ActiveMainUser.Username
             };
             return chatRoomCreatorServerUser;
-        }
+        }      
 
-       
-
-        #endregion Private Methods
-
-
-        public void AddUserToChatRoom()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ProcessRespondedInvites()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RemoveChatRoom()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void RemoveUserFromChatRoom()
-        {
-            throw new NotImplementedException();
-        }
-
-
-        public void SetListOfUsersToChatRoom()
-        {
-            throw new NotImplementedException();
-        }
-
+        #endregion Private Methods     
         
     }
 }

@@ -122,12 +122,13 @@ namespace ChatRoomClient.DomainLayer
                         break;
 
                     case MessageActionType.ServerClientDisconnectAccepted:
-                        _userChatRoomAssistantInstance.RemoveAllActiveServerUsers();
-                        _userChatRoomAssistantInstance.RemoveAllChatRooms();
-                        _userChatRoomAssistantInstance.RemoveAllInvites();
+                        ResolveDisconnection(serverCommunicationInfo);
+                        //_userChatRoomAssistantInstance.RemoveAllActiveServerUsers();
+                        //_userChatRoomAssistantInstance.RemoveAllChatRooms();
+                        //_userChatRoomAssistantInstance.RemoveAllInvites();
 
-                        _serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
-                        serverCommunicationInfo.LogReportCallback("Client Disconnected from Server");
+                        //_serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
+                        //serverCommunicationInfo.LogReportCallback("Client Disconnected from Server");
                         break;
 
                     case MessageActionType.ServerUserIsDisconnected:
@@ -154,7 +155,6 @@ namespace ChatRoomClient.DomainLayer
                         }
 
                         _userChatRoomAssistantInstance.UpdateAllActiveServerUsers(payload.ActiveServerUsers);
-
                         serverCommunicationInfo.LogReportCallback($"Main User in Chat Room: {payload.ChatRoomCreated.ChatRoomName} Sent Message:{payload.MessageToChatRoom}");
                         break;
 
@@ -208,6 +208,9 @@ namespace ChatRoomClient.DomainLayer
                         _userChatRoomAssistantInstance.RemoveUserFromSingleChatRoom(chatRoomInfo.ChatRoomId, targetServerUserId);
                         serverCommunicationInfo.LogReportCallback($"User Removed from Chat Room");
                         break;
+
+                    case MessageActionType.ServerStopped:
+                        ResolveDisconnection(serverCommunicationInfo);
                         break;
 
 
@@ -227,7 +230,15 @@ namespace ChatRoomClient.DomainLayer
             ThreadServerCommunication.Start();
         }
            
+        private void ResolveDisconnection(ServerCommunicationInfo serverCommunicationInfo)
+        {
+            _userChatRoomAssistantInstance.RemoveAllActiveServerUsers();
+            _userChatRoomAssistantInstance.RemoveAllChatRooms();
+            _userChatRoomAssistantInstance.RemoveAllInvites();
 
+            _serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
+            serverCommunicationInfo.LogReportCallback("Client Disconnected from Server");
+        }
         private void SetActiveUserInUserChatAssistant(IUser userForActivation)
         {
             IUser currentActiveMainUser = _userChatRoomAssistantInstance.GetActiveMainUser();
