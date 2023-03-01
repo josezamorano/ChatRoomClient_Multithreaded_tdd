@@ -28,6 +28,8 @@ namespace ChatRoomClient.DomainLayer
             _activeTcpClient = activeTcpClient;
         }
 
+
+        //Tested
         public void ExecuteCommunicationSendMessageToServer(Payload payload, ServerCommunicationInfo serverCommunicationInfo)
         {
             string messageSent = ResolveCommunicationToServer(payload);

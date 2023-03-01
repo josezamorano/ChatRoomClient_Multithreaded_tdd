@@ -41,6 +41,7 @@ namespace ChatRoomClient.DomainLayer
             return userChatRoomAssistant;
         }
 
+
         public void SetOtherActiveServerUsersUpdate(OtherActiveServerUsersUpdateDelegate otherActiveServerUsersUpdateCallback)
         {
             _otherActiveServerUsersUpdateCallback = otherActiveServerUsersUpdateCallback;
@@ -71,6 +72,7 @@ namespace ChatRoomClient.DomainLayer
             return _allActiveServerUsers;
         }
 
+        //Tested
         public void UpdateAllActiveServerUsers(List<ServerUser> allActiveServerUsers)
         {
             _allActiveServerUsers = allActiveServerUsers;

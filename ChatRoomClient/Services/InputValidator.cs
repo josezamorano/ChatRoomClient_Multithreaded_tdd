@@ -8,7 +8,7 @@ namespace ChatRoomClient.Services
     {
         ClientInputsValidationReport clientInputsValidationReport;
 
-
+        //Tested
         public ClientInputsValidationReport ValidateClientConnectToServerInputs(ClientInputs clientInputs)
         {
             clientInputsValidationReport = new ClientInputsValidationReport();

@@ -11,7 +11,7 @@ namespace ChatRoomClient.DomainLayer
 {
 
     public delegate void ServerActionReportDelegate(Payload payload);
-    internal class ClientManager : IClientManager
+    public class ClientManager : IClientManager
     {
         //Variables
         private IPAddress _serverIpAddress;
@@ -23,14 +23,17 @@ namespace ChatRoomClient.DomainLayer
         IUser _mainUser;
         IUserChatRoomAssistant _userChatRoomAssistantInstance;
         IObjectCreator _objectCreator;
-        public ClientManager(IServerAction serverAction, IUser mainUser, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator)
+        ITcpClientProvider _tcpClientProvider;
+        public ClientManager(IServerAction serverAction, IUser mainUser, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator, ITcpClientProvider tcpClientProvider)
         {
             _serverAction = serverAction;
             _mainUser = mainUser;
             _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
             _objectCreator = objectCreator;
+            _tcpClientProvider = tcpClientProvider;
         }
 
+        //Tested
         public void ConnectToServer(ServerCommunicationInfo serverCommunicationInfo)
         {
             string log = string.Empty;
@@ -39,7 +42,7 @@ namespace ChatRoomClient.DomainLayer
                 _serverIpAddress = IPAddress.Parse(serverCommunicationInfo.IPAddress);
                 log = Notification.CRLF + "Attempting to Connect to Server...";
                 serverCommunicationInfo.LogReportCallback(log);
-                _tcpClient = new TcpClient(_serverIpAddress.ToString(), serverCommunicationInfo.Port);
+                _tcpClient = _tcpClientProvider.CreateTcpClient(_serverIpAddress.ToString(), serverCommunicationInfo.Port); // new TcpClient(_serverIpAddress.ToString(), serverCommunicationInfo.Port);
 
                 Thread threadClientConnection = new Thread(() =>
                 {
@@ -123,12 +126,6 @@ namespace ChatRoomClient.DomainLayer
 
                     case MessageActionType.ServerClientDisconnectAccepted:
                         ResolveDisconnection(serverCommunicationInfo);
-                        //_userChatRoomAssistantInstance.RemoveAllActiveServerUsers();
-                        //_userChatRoomAssistantInstance.RemoveAllChatRooms();
-                        //_userChatRoomAssistantInstance.RemoveAllInvites();
-
-                        //_serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
-                        //serverCommunicationInfo.LogReportCallback("Client Disconnected from Server");
                         break;
 
                     case MessageActionType.ServerUserIsDisconnected:

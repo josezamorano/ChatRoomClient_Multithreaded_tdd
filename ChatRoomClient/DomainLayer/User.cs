@@ -25,6 +25,8 @@ namespace ChatRoomClient.DomainLayer
             _objectCreator = objectCreator;
         }
 
+
+        //Tested
         public void AcceptInvite(ServerCommunicationInfo serverCommunicationInfo)
         {            
             ResolveInvite(MessageActionType.ServerUserAcceptInvite, serverCommunicationInfo);

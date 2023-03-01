@@ -7,6 +7,7 @@ namespace ChatRoomClient.Services
 {
     public class ObjectCreator : IObjectCreator
     {       
+        //Tested
         public Payload CreatePayload(MessageActionType messageActionType, string username)
         {
             Payload payload = new Payload()

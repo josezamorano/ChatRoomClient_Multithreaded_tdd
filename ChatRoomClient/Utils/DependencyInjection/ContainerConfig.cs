@@ -13,11 +13,11 @@ namespace ChatRoomClient.Utils.DependencyInjection
             ContainerBuilder builder = new ContainerBuilder();
             builder.RegisterType<ClientManager>().As<IClientManager>();
             builder.RegisterType<InputValidator>().As<IInputValidator>();
-            builder.RegisterType<MessageFactory>().As<IMessageFactory>();
             builder.RegisterType<ObjectCreator>().As<IObjectCreator>();
             builder.RegisterType<SerializationProvider>().As<ISerializationProvider>();
             builder.RegisterType<ServerAction>().As<IServerAction>().SingleInstance();
             builder.RegisterType<StreamProvider>().As<IStreamProvider>();
+            builder.RegisterType<TcpClientProvider>().As<ITcpClientProvider>();
             builder.RegisterType<Transmitter>().As<ITransmitter>();
             builder.RegisterType<User>().As<IUser>().SingleInstance();
             builder.RegisterType<UserChatRoomAssistant>().As<IUserChatRoomAssistant>().SingleInstance();

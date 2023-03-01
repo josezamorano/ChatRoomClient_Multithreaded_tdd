@@ -1,11 +1,12 @@
-﻿using ChatRoomClient.Utils.Interfaces;
+﻿using ChatRoomClient.Services;
+using ChatRoomClient.Utils.Interfaces;
 using Newtonsoft.Json;
 
 namespace ChatRoomClient.DataAccessLayer.IONetwork
 {
     public class SerializationProvider : ISerializationProvider
     {
-
+        //Tested
         public string SerializeObject<T>( T obj) where T : class
         {
             try
@@ -15,14 +16,23 @@ namespace ChatRoomClient.DataAccessLayer.IONetwork
             }
             catch(Exception ex) 
             { 
-                return "ERROR: " + ex.ToString();
+                return Notification.Exception + ex.ToString();
             }
         }
 
+        //Tested
         public T DeserializeObject<T>(string obj) where T : class
-        {            
-            var deserializedObject = JsonConvert.DeserializeObject<T>(obj);
-            return deserializedObject;
+        {
+            try
+            {
+                var deserializedObject = JsonConvert.DeserializeObject<T>(obj);
+                return deserializedObject;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+
         }
     }
 }
