@@ -20,14 +20,12 @@ namespace ChatRoomClient.DomainLayer
         private string _currentUsername;
 
         IServerAction _serverAction;
-        IUser _mainUser;
         IUserChatRoomAssistant _userChatRoomAssistantInstance;
         IObjectCreator _objectCreator;
         ITcpClientProvider _tcpClientProvider;
-        public ClientManager(IServerAction serverAction, IUser mainUser, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator, ITcpClientProvider tcpClientProvider)
+        public ClientManager(IServerAction serverAction, IUserChatRoomAssistant userChatRoomAssistant, IObjectCreator objectCreator, ITcpClientProvider tcpClientProvider)
         {
             _serverAction = serverAction;
-            _mainUser = mainUser;
             _userChatRoomAssistantInstance = userChatRoomAssistant.GetInstance();
             _objectCreator = objectCreator;
             _tcpClientProvider = tcpClientProvider;
@@ -92,7 +90,8 @@ namespace ChatRoomClient.DomainLayer
                     break;
 
                 case MessageActionType.ClientDisconnect:
-                    payload = _objectCreator.CreatePayload(messageActionType, _mainUser.Username, _mainUser.UserID);
+                    IUser mainUser = _userChatRoomAssistantInstance.GetActiveMainUser();
+                    payload = _objectCreator.CreatePayload(messageActionType, mainUser.Username, mainUser.UserID);
                     break;
                     
             }
@@ -114,9 +113,7 @@ namespace ChatRoomClient.DomainLayer
                         ServerUser? userForActivation = payload.ActiveServerUsers.Where(a => a.Username.ToLower() == _currentUsername.ToLower()).FirstOrDefault();
                         if (userForActivation != null)
                         {
-                            _mainUser.UserID = (Guid)userForActivation.ServerUserID;
-                            _mainUser.Username = userForActivation.Username;
-                            SetActiveUserInUserChatAssistant(_mainUser);
+                            SetActiveUserInUserChatAssistant(userForActivation);
                         }
 
                         serverCommunicationInfo.UsernameStatusReportCallback(payload.MessageActionType);
@@ -236,10 +233,10 @@ namespace ChatRoomClient.DomainLayer
             _serverAction.ExecuteDisconnectFromServer(serverCommunicationInfo);
             serverCommunicationInfo.LogReportCallback("Client Disconnected from Server");
         }
-        private void SetActiveUserInUserChatAssistant(IUser userForActivation)
+        private void SetActiveUserInUserChatAssistant(ServerUser userForActivation)
         {
             IUser currentActiveMainUser = _userChatRoomAssistantInstance.GetActiveMainUser();
-            if (currentActiveMainUser == null)
+            if (currentActiveMainUser.Username == null)
             {                
                 _userChatRoomAssistantInstance.SetActiveMainUser(userForActivation);
             }

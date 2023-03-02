@@ -8,15 +8,15 @@ namespace ChatRoomClient.Utils.Interfaces
     {
         IUserChatRoomAssistant GetInstance();
 
+        void SetActiveMainUser(ServerUser user);
+
+        IUser GetActiveMainUser();
+
         void SetOtherActiveServerUsersUpdate(OtherActiveServerUsersUpdateDelegate otherActiveServerUsersUpdateCallback);
 
         void SetChatRoomUpdateCallback(ChatRoomUpdateDelegate chatRoomUpdateCallback);
 
         void SetInviteUpdateCallback(InviteUpdateDelegate inviteUpdateCallback);
-
-        void SetActiveMainUser(IUser user);
-        
-        IUser GetActiveMainUser();
 
         List<ServerUser> GetAllActiveServerUsers();
 

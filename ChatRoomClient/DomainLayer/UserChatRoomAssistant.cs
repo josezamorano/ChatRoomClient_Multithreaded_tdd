@@ -21,8 +21,9 @@ namespace ChatRoomClient.DomainLayer
 
         IObjectCreator _objectCreator;
         IServerAction _serverAction;
-        public UserChatRoomAssistant(IObjectCreator objectCreator, IServerAction serverAction)
+        public UserChatRoomAssistant(IUser activeMainUser, IObjectCreator objectCreator, IServerAction serverAction)
         {
+            _ActiveMainUser = activeMainUser;
             _objectCreator = objectCreator;
             _serverAction = serverAction;
 
@@ -36,10 +37,23 @@ namespace ChatRoomClient.DomainLayer
 
             if (userChatRoomAssistant == null)
             {
-                userChatRoomAssistant = new UserChatRoomAssistant(_objectCreator, _serverAction);
+                userChatRoomAssistant = new UserChatRoomAssistant(_ActiveMainUser, _objectCreator, _serverAction);
             }
             return userChatRoomAssistant;
         }
+
+        public void SetActiveMainUser(ServerUser user)
+        {
+            _ActiveMainUser.UserID = (Guid)user.ServerUserID;
+            _ActiveMainUser.Username = user.Username;
+
+        }
+
+        public IUser GetActiveMainUser()
+        {
+            return _ActiveMainUser;
+        }
+
 
 
         public void SetOtherActiveServerUsersUpdate(OtherActiveServerUsersUpdateDelegate otherActiveServerUsersUpdateCallback)
@@ -56,15 +70,7 @@ namespace ChatRoomClient.DomainLayer
             _inviteUpdateCallback = inviteUpdateCallback;
         }
 
-        public void SetActiveMainUser(IUser user)
-        {
-            _ActiveMainUser = user;
-        }
-
-        public IUser GetActiveMainUser()
-        {
-            return _ActiveMainUser;
-        }
+       
 
         //SERVERUSER BEGIN****
         public List<ServerUser> GetAllActiveServerUsers()
